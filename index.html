@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f6e56">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Contagem de Estoque</title>
+<style>
+  :root{--verde:#0f6e56;--verde-escuro:#0a4f3e;--azul:#1f3a5f;--cinza:#5b6677;
+    --linha:#e2e6ec;--fundo:#eef1f5;--branco:#fff;--vermelho:#b00020;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--fundo);
+    color:#1a2230;display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+  header{background:var(--verde);color:#fff;padding:12px 14px 10px;flex:0 0 auto}
+  .titulo{font-size:19px;font-weight:800;letter-spacing:.3px}
+  .sub{font-size:12.5px;color:#bfe3d7;margin-top:2px}
+  .busca-wrap{position:relative;margin-top:10px}
+  #busca{width:100%;border:none;border-radius:11px;padding:14px 44px 14px 16px;font-size:17px;background:#fff;color:#1a2230;outline:none}
+  #busca::placeholder{color:#8a93a3}
+  .limpar-busca{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:#dfe4ec;color:#5b6677;width:32px;height:32px;border-radius:8px;font-size:18px;display:none;align-items:center;justify-content:center}
+  .limpar-busca.on{display:flex}
+  main{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px 12px}
+  .marca-hdr{position:sticky;top:0;background:var(--fundo);font-size:13px;font-weight:800;color:var(--verde);
+    text-transform:uppercase;letter-spacing:.7px;padding:12px 6px 6px;z-index:1}
+  .marca-hdr .cont{color:#9aa3b0;font-weight:700;font-size:12px}
+  .item{display:flex;align-items:center;gap:10px;background:var(--branco);border:1px solid var(--linha);border-radius:13px;padding:9px 12px 9px 14px;margin-bottom:8px}
+  .item.tem{border-color:#a9d8c8;background:#fbfefd}
+  .nome{flex:1 1 auto;font-size:15.5px;font-weight:600;line-height:1.2;min-width:0}
+  .qtd-in{flex:0 0 auto;width:84px;height:50px;border:2px solid var(--linha);border-radius:11px;font-size:22px;font-weight:800;text-align:center;color:var(--verde);outline:none;background:#fff}
+  .qtd-in:focus{border-color:var(--verde)}
+  .qtd-in.vazio{color:#b9c1cd;font-weight:600}
+  .vazio-busca{text-align:center;color:#8a93a3;font-size:15px;padding:40px 20px}
+  footer{flex:0 0 auto;background:var(--branco);border-top:1px solid var(--linha);padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+  .total-linha{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
+  .total-rot{font-size:13px;color:var(--cinza);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .total-num{font-size:22px;font-weight:800;color:var(--verde);font-variant-numeric:tabular-nums}
+  .acoes{display:flex;gap:8px}
+  .acao{flex:1;border:none;border-radius:11px;padding:14px 8px;font-size:15px;font-weight:800;color:#fff}
+  .enviar{background:var(--verde)}.enviar:active{background:var(--verde-escuro)}
+  .copiar{background:var(--azul)}.copiar:active{background:#16294a}
+  .menu-btn{flex:0 0 auto;width:52px;background:#eef1f5;color:#5b6677;font-size:22px}.menu-btn:active{background:#dfe4ec}
+  .sheet-bg{position:fixed;inset:0;background:rgba(15,25,40,.55);display:none;z-index:10}.sheet-bg.on{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;z-index:11;border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .22s ease;max-height:80dvh;overflow:auto}
+  .sheet.on{transform:translateY(0)}
+  .sheet h2{font-size:17px;margin-bottom:4px}.sheet p{font-size:13.5px;color:var(--cinza);margin-bottom:12px}
+  .sheet .acao{width:100%;margin-bottom:9px}
+  .reset{background:#fbeaec;color:var(--vermelho)}.reset:active{background:#f3d6da}
+  .fechar-sheet{background:#eef1f5;color:#5b6677}
+  .full{position:fixed;inset:0;z-index:30;background:var(--fundo);display:none;flex-direction:column}.full.on{display:flex}
+  .full-head{background:var(--verde);color:#fff;display:flex;align-items:center;gap:6px;padding:14px;flex:0 0 auto}
+  .full-voltar{border:none;background:transparent;color:#fff;font-size:30px;line-height:1;width:38px;height:38px;display:flex;align-items:center;justify-content:center;margin-left:-6px}
+  .full-titulo{font-size:19px;font-weight:800}
+  .full-body{flex:1 1 auto;overflow-y:auto;padding:10px 12px 14px}
+  .resumo-cont{font-size:13px;color:var(--cinza);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:2px 2px 10px}
+  .resumo-marca{font-size:12.5px;font-weight:800;color:var(--verde);text-transform:uppercase;letter-spacing:.6px;margin:14px 2px 8px}
+  .resumo-vazio{text-align:center;color:#8a93a3;font-size:16px;padding:50px 24px}
+  .resumo-item{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--linha);border-radius:12px;padding:13px 15px;margin-bottom:8px}
+  .resumo-item .rnome{flex:1 1 auto;font-size:16px;font-weight:600;line-height:1.25}
+  .resumo-item .rsku{font-size:12px;color:var(--cinza);font-weight:600;margin-top:2px}
+  .resumo-item .rqtd{flex:0 0 auto;font-size:24px;font-weight:800;color:var(--verde);font-variant-numeric:tabular-nums;min-width:40px;text-align:right}
+  .full-foot{flex:0 0 auto;background:#fff;border-top:1px solid var(--linha);padding:12px 12px calc(12px + env(safe-area-inset-bottom))}
+  .full-foot .acao{width:100%;margin-bottom:9px;padding:16px 8px;font-size:16px}.full-foot .acao:last-child{margin-bottom:0}
+  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--verde-escuro);color:#fff;padding:11px 18px;border-radius:24px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:40;white-space:nowrap}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .update-bar{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));background:var(--azul);color:#fff;border-radius:13px;z-index:50;display:none;align-items:center;gap:10px;padding:12px 12px 12px 16px;box-shadow:0 6px 24px rgba(15,25,40,.35)}
+  .update-bar.on{display:flex}
+  .update-bar .txt{flex:1 1 auto;font-size:14.5px;font-weight:600}
+  .update-bar button{flex:0 0 auto;border:none;border-radius:9px;padding:11px 16px;font-size:14px;font-weight:800;background:#2e9e5b;color:#fff}
+</style>
+</head>
+<body>
+<noscript><div style="padding:24px;font-family:sans-serif;background:#fbeaec;color:#b00020;font-size:16px;line-height:1.5"><b>Este app precisa abrir no navegador.</b><br>Abra pelo <b>Chrome</b> (ou pelo ícone instalado na tela inicial).</div></noscript>
+<header>
+  <div class="titulo">Contagem de Estoque</div>
+  <div class="sub">Digite a quantidade atual de cada produto</div>
+  <div class="busca-wrap">
+    <input id="busca" type="text" inputmode="search" autocomplete="off" placeholder="Buscar produto…">
+    <button class="limpar-busca" id="limparBusca" aria-label="Limpar busca">×</button>
+  </div>
+</header>
+<main id="lista"></main>
+<footer>
+  <div class="total-linha"><span class="total-rot">Produtos preenchidos</span><span class="total-num" id="totalNum">0</span></div>
+  <div class="acoes">
+    <button class="acao enviar" id="btnEnviar">Enviar</button>
+    <button class="acao copiar" id="btnCopiar">Copiar SKUs</button>
+    <button class="acao menu-btn" id="btnMenu" aria-label="Mais opções">⋯</button>
+  </div>
+</footer>
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet"><div id="sheetMenu">
+  <h2>Opções</h2><p>Limpe tudo só depois de enviar a contagem atual.</p>
+  <button class="acao reset" id="btnLimparTudo">Limpar tudo (zerar campos)</button>
+  <button class="acao fechar-sheet" id="btnFecharMenu">Voltar</button>
+</div></div>
+<div class="full" id="resumoFull">
+  <div class="full-head"><button class="full-voltar" id="resumoFechar" aria-label="Voltar">‹</button><div class="full-titulo">Resumo do estoque</div></div>
+  <div class="full-body" id="resumoBody"></div>
+  <div class="full-foot"><button class="acao enviar" id="btnShareWpp">Enviar pelo WhatsApp</button><button class="acao copiar" id="btnCopiarResumo">Copiar lista (SKU)</button></div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="update-bar" id="updateBar"><div class="txt">Nova versão disponível</div><button id="btnAtualizar">Atualizar agora</button></div>
+<script>
+"use strict";
+const CATALOGO = [
+  {marca:"FAK", itens:[
+    {sku:"A01", nome:"LIQUIDIFICADOR AR 2L 110 M1"},
+    {sku:"A01F", nome:"LIQUIDIFICADOR AR 2L 220 M1"},
+    {sku:"A02", nome:"LIQUIDIFICADOR AR 4L 110 M1"},
+    {sku:"A02F", nome:"LIQUIDIFICADOR AR 4L 220 M1"},
+    {sku:"A03", nome:"LIQUIDIFICADOR BR 2L 110 M1"},
+    {sku:"A03F", nome:"LIQUIDIFICADOR BR 2L 220 M1"},
+    {sku:"A04", nome:"LIQUIDIFICADOR BR 4L 110 M1"},
+    {sku:"A04F", nome:"LIQUIDIFICADOR BR 4L 220 M1"},
+    {sku:"A05", nome:"LIQUIDIFICADOR BR 6L 110 M1"},
+    {sku:"A05F", nome:"LIQUIDIFICADOR BR 6L 220 M1"},
+    {sku:"A06", nome:"LIQUIDIFICADOR BR 8L 110 M1"},
+    {sku:"A06F", nome:"LIQUIDIFICADOR BR 8L 220 M1"},
+    {sku:"A07", nome:"LIQUIDIFICADOR BR 10L 110 M1"},
+    {sku:"A07F", nome:"LIQUIDIFICADOR BR 10L 220 M1"},
+    {sku:"A11", nome:"BICA PLÁSTICA"},
+    {sku:"AR1", nome:"ARRASTE AR"},
+    {sku:"ARBR", nome:"ARRASTE BR"},
+    {sku:"M01", nome:"MANCAL AR"},
+    {sku:"MB2", nome:"MANCAL BR"},
+    {sku:"C01", nome:"COPO 2L AR"},
+    {sku:"C02", nome:"COPO 4L AR"},
+    {sku:"CP2BR", nome:"COPO 2L BR"},
+    {sku:"CP4BR", nome:"COPO 4L BR"},
+    {sku:"MK1", nome:"MILK SHAKE 110"},
+    {sku:"MK1F", nome:"MILK SHAKE 220"},
+    {sku:"CMK", nome:"COPO MILK SHAKE"},
+    {sku:"PMK", nome:"PONTEIRA"},
+    {sku:"PRP", nome:"PICADOR PEQUENO"},
+    {sku:"PRM", nome:"PICADOR MÉDIO"},
+    {sku:"PR1", nome:"PICADOR PREMIUM"},
+  ]},
+  {marca:"JL COLOMBO", itens:[
+    {sku:"JL1", nome:"LIQUIDIFICADOR BR 2L JL"},
+    {sku:"JL2", nome:"LIQUIDIFICADOR BR 4L JL"},
+    {sku:"JL3", nome:"LIQUIDIFICADOR BR 6L JL"},
+    {sku:"JL4", nome:"LIQUIDIFICADOR BR 8L JL"},
+    {sku:"JL5", nome:"LIQUIDIFICADOR BR 10L JL"},
+    {sku:"JL6", nome:"LIQUIDIFICADOR BR 12L JL"},
+    {sku:"JL7", nome:"CAVALETE 15L"},
+    {sku:"JL8", nome:"CAVALETE 19L"},
+    {sku:"JL9", nome:"CAVALETE 25L"},
+    {sku:"JL10", nome:"CAVALETE 30L"},
+    {sku:"LV2", nome:"LIQUIDIFICADOR BR 2L 110 LEVE"},
+    {sku:"LV2F", nome:"LIQUIDIFICADOR BR 2L 220 LEVE"},
+    {sku:"LV3", nome:"LIQUIDIFICADOR BR 3,5L 110 LEVE"},
+    {sku:"LV3F", nome:"LIQUIDIFICADOR BR 3,5L 220 LEVE"},
+    {sku:"LV6", nome:"LIQUIDIFICADOR BR 6L 110 LEVE"},
+    {sku:"LV6F", nome:"LIQUIDIFICADOR BR 6L 220 LEVE"},
+    {sku:"LV8", nome:"LIQUIDIFICADOR BR 8L 110 LEVE"},
+    {sku:"LV8F", nome:"LIQUIDIFICADOR BR 8L 220 LEVE"},
+    {sku:"LV10", nome:"LIQUIDIFICADOR BR 10L 110 LEVE"},
+    {sku:"LV10F", nome:"LIQUIDIFICADOR BR 10L 220 LEVE"},
+    {sku:"2ARJL", nome:"LIQUIDIFICADOR AR 2L 110"},
+    {sku:"2ARJLF", nome:"LIQUIDIFICADOR AR 2L 220"},
+    {sku:"4ARJL", nome:"LIQUIDIFICADOR AR 4L 110"},
+    {sku:"4ARJLF", nome:"LIQUIDIFICADOR AR 4L 220"},
+    {sku:"CT1", nome:"CUTTER 6L 110"},
+    {sku:"CT1F", nome:"CUTTER 6L 220"},
+    {sku:"PWL", nome:"POWER"},
+    {sku:"PWPP", nome:"PP"},
+    {sku:"MDH", nome:"MODELADOR DE HAMBÚRGUER"},
+    {sku:"CN1", nome:"CANHÃO"},
+  ]},
+];
+
+// achata mantendo a marca de cada item
+const PRODUTOS=[]; const GRUPOS=[];
+CATALOGO.forEach(g=>{ const ini=PRODUTOS.length; g.itens.forEach(it=>PRODUTOS.push({sku:it.sku,nome:it.nome,marca:g.marca})); GRUPOS.push({marca:g.marca,ini,fim:PRODUTOS.length}); });
+const CHAVE="estoque_valores_v1";
+let valores=carregar();
+function carregar(){try{const raw=localStorage.getItem(CHAVE);if(raw){const o=JSON.parse(raw);if(o&&typeof o==="object")return PRODUTOS.map(p=> (p.sku in o)?String(o[p.sku]):"");}}catch(e){}return PRODUTOS.map(()=> "");}
+function salvar(){try{const o={};PRODUTOS.forEach((p,i)=>{if(valores[i]!=="")o[p.sku]=valores[i];});localStorage.setItem(CHAVE,JSON.stringify(o));}catch(e){}}
+function norm(s){return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();}
+const NOMES_NORM=PRODUTOS.map(p=>norm(p.nome+" "+p.sku+" "+p.marca));
+const lista=document.getElementById("lista");const refs=[];const hdrs=[];
+function montar(){
+  lista.innerHTML="";refs.length=0;hdrs.length=0;
+  GRUPOS.forEach(g=>{
+    const h=document.createElement("div");h.className="marca-hdr";
+    h.innerHTML=g.marca+' <span class="cont">'+(g.fim-g.ini)+'</span>';
+    lista.append(h);hdrs.push({el:h,ini:g.ini,fim:g.fim});
+    for(let i=g.ini;i<g.fim;i++){
+      const p=PRODUTOS[i];
+      const item=document.createElement("div");item.className="item";
+      const nm=document.createElement("div");nm.className="nome";nm.textContent=p.nome;
+      const inp=document.createElement("input");inp.className="qtd-in";inp.type="text";inp.inputMode="numeric";inp.maxLength=6;inp.placeholder="—";inp.value=valores[i];inp.setAttribute("aria-label","Quantidade de "+p.nome);
+      inp.addEventListener("input",()=>{let v=inp.value.replace(/[^\d]/g,"");if(v.length>1)v=v.replace(/^0+(?=\d)/,"");inp.value=v;valores[i]=v;salvar();pintar(i);atualizarTotal();});
+      inp.addEventListener("focus",()=>inp.select());
+      item.append(nm,inp);lista.append(item);refs.push({item,inp});pintar(i);
+    }
+  });
+  atualizarTotal();
+}
+function pintar(i){const r=refs[i];if(!r)return;const tem=valores[i]!=="";r.item.classList.toggle("tem",tem);r.inp.classList.toggle("vazio",!tem);}
+function atualizarTotal(){document.getElementById("totalNum").textContent=valores.filter(v=>v!=="").length;}
+const busca=document.getElementById("busca"),limparBusca=document.getElementById("limparBusca");
+busca.addEventListener("input",filtrar);
+limparBusca.addEventListener("click",()=>{busca.value="";filtrar();busca.focus();});
+function filtrar(){
+  const termos=norm(busca.value.trim()).split(/\s+/).filter(Boolean);
+  limparBusca.classList.toggle("on",busca.value.length>0);
+  let vis=0;
+  refs.forEach((r,i)=>{const ok=termos.every(t=>NOMES_NORM[i].includes(t));r.item.style.display=ok?"":"none";if(ok)vis++;});
+  hdrs.forEach(h=>{let algum=false;for(let i=h.ini;i<h.fim;i++){if(refs[i].item.style.display!=="none"){algum=true;break;}}h.el.style.display=algum?"":"none";});
+  let vz=document.getElementById("vazioBusca");
+  if(vis===0){if(!vz){vz=document.createElement("div");vz.id="vazioBusca";vz.className="vazio-busca";lista.append(vz);}vz.textContent="Nenhum produto encontrado.";}
+  else if(vz){vz.remove();}
+}
+function preenchidos(){const out=[];PRODUTOS.forEach((p,i)=>{if(valores[i]!=="")out.push({sku:p.sku,nome:p.nome,marca:p.marca,qtd:valores[i]});});return out;}
+function textoEnvio(){const itens=preenchidos();const data=new Date().toLocaleDateString("pt-BR");if(itens.length===0)return "Estoque ("+data+")\nNenhum produto preenchido.";let t="Estoque ("+data+")\n\n";itens.forEach(x=>{t+=x.sku+" - "+x.qtd+"\n";});t+="\n"+itens.length+" itens";return t;}
+function listaSku(){return preenchidos().map(x=>x.sku+" - "+x.qtd).join("\n");}
+const sheetBg=document.getElementById("sheetBg"),sheet=document.getElementById("sheet");
+function abrirMenu(){sheetBg.classList.add("on");sheet.classList.add("on");}
+function fecharSheet(){sheet.classList.remove("on");sheetBg.classList.remove("on");}
+sheetBg.addEventListener("click",fecharSheet);
+document.getElementById("btnFecharMenu").addEventListener("click",fecharSheet);
+document.getElementById("btnMenu").addEventListener("click",abrirMenu);
+const resumoFull=document.getElementById("resumoFull");
+function abrirResumo(){
+  const itens=preenchidos();const body=document.getElementById("resumoBody");body.innerHTML="";
+  if(itens.length===0){const v=document.createElement("div");v.className="resumo-vazio";v.textContent="Nenhum produto preenchido ainda. Digite as quantidades na lista.";body.append(v);}
+  else{
+    const cab=document.createElement("div");cab.className="resumo-cont";cab.textContent=itens.length+(itens.length===1?" produto":" produtos");body.append(cab);
+    let marcaAtual=null;
+    itens.forEach(x=>{
+      if(x.marca!==marcaAtual){marcaAtual=x.marca;const mh=document.createElement("div");mh.className="resumo-marca";mh.textContent=x.marca;body.append(mh);}
+      const row=document.createElement("div");row.className="resumo-item";
+      const wrap=document.createElement("div");wrap.className="rnome";wrap.style.flex="1 1 auto";wrap.textContent=x.nome;
+      const sku=document.createElement("div");sku.className="rsku";sku.textContent="SKU "+x.sku;wrap.append(sku);
+      const q=document.createElement("div");q.className="rqtd";q.textContent=x.qtd;
+      row.append(wrap,q);body.append(row);
+    });
+  }
+  resumoFull.classList.add("on");
+}
+function fecharResumo(){resumoFull.classList.remove("on");}
+document.getElementById("btnEnviar").addEventListener("click",abrirResumo);
+document.getElementById("resumoFechar").addEventListener("click",fecharResumo);
+document.getElementById("btnCopiar").addEventListener("click",()=>copiar(listaSku(),"Lista de SKUs copiada"));
+document.getElementById("btnShareWpp").addEventListener("click",async()=>{const txt=textoEnvio();if(navigator.share){try{await navigator.share({text:txt});}catch(e){}}else{window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank");}});
+document.getElementById("btnCopiarResumo").addEventListener("click",()=>copiar(textoEnvio(),"Lista copiada"));
+document.getElementById("btnLimparTudo").addEventListener("click",()=>{if(confirm("Apagar todas as quantidades e começar uma contagem nova?")){valores=PRODUTOS.map(()=> "");salvar();refs.forEach((r,i)=>{r.inp.value="";pintar(i);});atualizarTotal();fecharSheet();fecharResumo();toast("Pronto — campos zerados");}});
+function copiar(texto,msg){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(texto).then(()=>toast(msg)).catch(()=>fallback(texto,msg));}else fallback(texto,msg);}
+function fallback(texto,msg){const ta=document.createElement("textarea");ta.value=texto;ta.style.position="fixed";ta.style.opacity="0";document.body.append(ta);ta.select();try{document.execCommand("copy");toast(msg);}catch(e){toast("Não consegui copiar");}ta.remove();}
+let tt=null;function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),2200);}
+montar();
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  let recarregando=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(recarregando)return;recarregando=true;window.location.reload();});
+  function barraUp(reg){const bar=document.getElementById("updateBar");bar.classList.add("on");document.getElementById("btnAtualizar").onclick=()=>{bar.classList.remove("on");if(reg.waiting)reg.waiting.postMessage("SKIP_WAITING");};}
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("./sw.js").then(reg=>{
+    if(reg.waiting&&navigator.serviceWorker.controller)barraUp(reg);
+    reg.addEventListener("updatefound",()=>{const n=reg.installing;if(!n)return;n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller)barraUp(reg);});});
+    reg.update();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")reg.update();});
+  }).catch(()=>{});});
+}
+</script>
+</body>
+</html>
