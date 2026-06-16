@@ -30,7 +30,7 @@
   #busca::placeholder{color:#8a93a3}
   .limpar-busca{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:#dfe4ec;color:#5b6677;width:32px;height:32px;border-radius:8px;font-size:18px;display:none;align-items:center;justify-content:center}
   .limpar-busca.on{display:flex}
-  main{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px 12px}
+  main{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px 12px;position:relative}
   .marca-hdr{position:sticky;top:0;background:var(--fundo);font-size:13px;font-weight:800;color:var(--verde);
     text-transform:uppercase;letter-spacing:.7px;padding:12px 6px 6px;z-index:1}
   .marca-hdr .cont{color:#9aa3b0;font-weight:700;font-size:12px}
@@ -299,11 +299,10 @@ montar();
       if(busca.value){ busca.value=""; filtrar(); }   // garante o grupo visível
       const h=hdrs[gi] && hdrs[gi].el;
       if(!h) return;
-      // posição do cabeçalho relativa ao container, sem depender de scrollIntoView
-      // (sticky atrapalha o scrollIntoView a partir do 2º clique)
+      // offsetTop é a posição de layout do cabeçalho dentro do container,
+      // imune ao sticky e ao scroll atual (getBoundingClientRect bugava ao subir)
       requestAnimationFrame(()=>{
-        const alvo = main.scrollTop + h.getBoundingClientRect().top - main.getBoundingClientRect().top;
-        main.scrollTo({ top: Math.max(0, alvo - 2), behavior: "smooth" });
+        main.scrollTo({ top: Math.max(0, h.offsetTop - 4), behavior: "smooth" });
       });
     });
     bar.append(b);
