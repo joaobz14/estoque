@@ -299,11 +299,9 @@ montar();
       if(busca.value){ busca.value=""; filtrar(); }   // garante o grupo visível
       const h=hdrs[gi] && hdrs[gi].el;
       if(!h) return;
-      // offsetTop é a posição de layout do cabeçalho dentro do container,
-      // imune ao sticky e ao scroll atual (getBoundingClientRect bugava ao subir)
-      requestAnimationFrame(()=>{
-        main.scrollTo({ top: Math.max(0, h.offsetTop - 4), behavior: "smooth" });
-      });
+      // salto instantâneo: o scroll suave em container com momentum trava
+      // no mobile (principalmente subindo). offsetTop é a posição de layout.
+      main.scrollTop = Math.max(0, h.offsetTop - 4);
     });
     bar.append(b);
   });
