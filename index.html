@@ -26,6 +26,7 @@
   .marca-chip{flex:0 0 auto;border:none;background:rgba(255,255,255,.16);color:#fff;
     font-size:13px;font-weight:700;padding:8px 13px;border-radius:20px;white-space:nowrap}
   .marca-chip:active{background:rgba(255,255,255,.30)}
+  .marca-chip.ativo{background:#fff;color:var(--verde)}
   #busca{width:100%;border:none;border-radius:11px;padding:14px 44px 14px 16px;font-size:17px;background:#fff;color:#1a2230;outline:none}
   #busca::placeholder{color:#8a93a3}
   .limpar-busca{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:#dfe4ec;color:#5b6677;width:32px;height:32px;border-radius:8px;font-size:18px;display:none;align-items:center;justify-content:center}
@@ -302,6 +303,9 @@ montar();
   // (≈ topo), zerando o deslocamento ao SUBIR e prendendo a tela num scroll
   // mínimo. Medimos com o sticky desligado (classe .medindo, síncrono e sem
   // repaint) para ler a posição verdadeira — confiável subindo e descendo.
+  const chips=[];
+  const suave=("scrollBehavior" in document.documentElement.style)
+    && !matchMedia("(prefers-reduced-motion: reduce)").matches;
   function alvoDoGrupo(gi){
     const h=hdrs[gi] && hdrs[gi].el;
     if(!h) return null;
@@ -318,12 +322,32 @@ montar();
       if(busca.value){ busca.value=""; filtrar(); }   // garante o grupo visível
       const alvo=alvoDoGrupo(gi);
       if(alvo==null) return;
-      // salto instantâneo: scroll suave em container com momentum (iOS) é
-      // instável; o salto direto é confiável nos dois sentidos.
-      main.scrollTop=alvo;
+      if(suave) main.scrollTo({top:alvo, behavior:"smooth"});
+      else main.scrollTop=alvo;   // fallback confiável (iOS antigo / reduce-motion)
     });
-    bar.append(b);
+    chips.push(b); bar.append(b);
   });
+  // destaca o chip do grupo que está no topo da lista enquanto rola.
+  // offsetTop é a posição de layout (imune ao sticky), então é seguro aqui.
+  let ativo=-1;
+  function marcarAtivo(){
+    const pos=main.scrollTop+8;
+    let gi=0;
+    for(let i=0;i<hdrs.length;i++){ if(hdrs[i].el.offsetTop<=pos) gi=i; else break; }
+    if(gi===ativo) return;
+    if(chips[ativo]) chips[ativo].classList.remove("ativo");
+    if(chips[gi]) chips[gi].classList.add("ativo");
+    ativo=gi;
+    // mantém o chip ativo visível na barra horizontal (sem mexer na vertical)
+    const b=chips[gi];
+    if(b){ const bl=b.offsetLeft, br=bl+b.offsetWidth;
+      if(bl<bar.scrollLeft) bar.scrollLeft=bl-8;
+      else if(br>bar.scrollLeft+bar.clientWidth) bar.scrollLeft=br-bar.clientWidth+8; }
+  }
+  let ag=false;
+  main.addEventListener("scroll",()=>{ if(ag) return; ag=true;
+    requestAnimationFrame(()=>{ ag=false; marcarAtivo(); }); },{passive:true});
+  marcarAtivo();
 })();
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   let recarregando=false;
