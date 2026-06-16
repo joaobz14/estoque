@@ -291,13 +291,20 @@ montar();
 // barra de marcas: rola até o grupo
 (function(){
   const bar=document.getElementById("marcasBar");
+  const main=document.getElementById("lista");
   GRUPOS.forEach((g,gi)=>{
     const b=document.createElement("button");
     b.className="marca-chip"; b.textContent=g.marca;
     b.addEventListener("click",()=>{
-      if(busca.value){ busca.value=""; filtrar(); }   // limpa busca pra garantir que o grupo aparece
+      if(busca.value){ busca.value=""; filtrar(); }   // garante o grupo visível
       const h=hdrs[gi] && hdrs[gi].el;
-      if(h) h.scrollIntoView({behavior:"smooth", block:"start"});
+      if(!h) return;
+      // posição do cabeçalho relativa ao container, sem depender de scrollIntoView
+      // (sticky atrapalha o scrollIntoView a partir do 2º clique)
+      requestAnimationFrame(()=>{
+        const alvo = main.scrollTop + h.getBoundingClientRect().top - main.getBoundingClientRect().top;
+        main.scrollTo({ top: Math.max(0, alvo - 2), behavior: "smooth" });
+      });
     });
     bar.append(b);
   });
