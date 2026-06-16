@@ -20,8 +20,12 @@
   .titulo{font-size:19px;font-weight:800;letter-spacing:.3px}
   .sub{font-size:12.5px;color:#bfe3d7;margin-top:2px}
   .busca-wrap{position:relative;margin-top:10px}
+  .nav-row{display:flex;gap:7px;align-items:center;margin-top:9px}
+  .filtro-toggle{flex:0 0 auto;border:none;background:rgba(255,255,255,.16);color:#fff;
+    font-size:12.5px;font-weight:700;padding:8px 12px;border-radius:20px;white-space:nowrap}
+  .filtro-toggle.on{background:#fff;color:var(--verde)}
   .marcas-bar{display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;
-    margin-top:9px;padding-bottom:2px;scrollbar-width:none}
+    flex:1 1 auto;min-width:0;padding-bottom:2px;scrollbar-width:none}
   .marcas-bar::-webkit-scrollbar{display:none}
   .marca-chip{flex:0 0 auto;border:none;background:rgba(255,255,255,.16);color:#fff;
     font-size:13px;font-weight:700;padding:8px 13px;border-radius:20px;white-space:nowrap}
@@ -92,7 +96,10 @@
     <input id="busca" type="text" inputmode="search" autocomplete="off" placeholder="Buscar produto…">
     <button class="limpar-busca" id="limparBusca" aria-label="Limpar busca">×</button>
   </div>
-  <div class="marcas-bar" id="marcasBar"></div>
+  <div class="nav-row">
+    <button class="filtro-toggle" id="toggleFaltam" aria-pressed="false">Faltam</button>
+    <div class="marcas-bar" id="marcasBar"></div>
+  </div>
 </header>
 <main id="lista"></main>
 <footer>
@@ -105,10 +112,13 @@
 </footer>
 <div class="sheet-bg" id="sheetBg"></div>
 <div class="sheet" id="sheet"><div id="sheetMenu">
-  <h2>Opções</h2><p>Limpe tudo só depois de enviar a contagem atual.</p>
+  <h2>Opções</h2><p>Exporte um backup antes de limpar. Limpe tudo só depois de enviar a contagem atual.</p>
+  <button class="acao copiar" id="btnExportar">Exportar contagem (backup)</button>
+  <button class="acao fechar-sheet" id="btnImportar">Importar contagem (arquivo)</button>
   <button class="acao reset" id="btnLimparTudo">Limpar tudo (zerar campos)</button>
   <button class="acao fechar-sheet" id="btnFecharMenu">Voltar</button>
 </div></div>
+<input type="file" id="fileImport" accept="application/json,.json" style="display:none">
 <div class="full" id="resumoFull">
   <div class="full-head"><button class="full-voltar" id="resumoFechar" aria-label="Voltar">‹</button><div class="full-titulo">Resumo do estoque</div></div>
   <div class="full-body" id="resumoBody"></div>
@@ -217,7 +227,7 @@ CATALOGO.forEach(g=>{ const ini=PRODUTOS.length; g.itens.forEach(it=>PRODUTOS.pu
 const CHAVE="estoque_valores_v1";
 let valores=carregar();
 function carregar(){try{const raw=localStorage.getItem(CHAVE);if(raw){const o=JSON.parse(raw);if(o&&typeof o==="object")return PRODUTOS.map(p=> (p.sku in o)?String(o[p.sku]):"");}}catch(e){}return PRODUTOS.map(()=> "");}
-function salvar(){try{const o={};PRODUTOS.forEach((p,i)=>{if(valores[i]!=="")o[p.sku]=valores[i];});localStorage.setItem(CHAVE,JSON.stringify(o));}catch(e){}}
+function salvar(){try{localStorage.setItem(CHAVE,JSON.stringify(mapaValores()));}catch(e){}}
 function norm(s){return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();}
 const NOMES_NORM=PRODUTOS.map(p=>norm(p.nome+" "+p.sku+" "+p.marca));
 const lista=document.getElementById("lista");const refs=[];const hdrs=[];
@@ -225,35 +235,49 @@ function montar(){
   lista.innerHTML="";refs.length=0;hdrs.length=0;
   GRUPOS.forEach(g=>{
     const h=document.createElement("div");h.className="marca-hdr";
-    h.innerHTML=g.marca+' <span class="cont">'+(g.fim-g.ini)+'</span>';
-    lista.append(h);hdrs.push({el:h,ini:g.ini,fim:g.fim});
+    h.innerHTML=g.marca+' <span class="cont"></span>';
+    lista.append(h);hdrs.push({el:h,ini:g.ini,fim:g.fim,cont:h.querySelector(".cont")});
     for(let i=g.ini;i<g.fim;i++){
       const p=PRODUTOS[i];
       const item=document.createElement("div");item.className="item";
       const nm=document.createElement("div");nm.className="nome";nm.textContent=p.nome;
-      const inp=document.createElement("input");inp.className="qtd-in";inp.type="text";inp.inputMode="numeric";inp.maxLength=6;inp.placeholder="—";inp.value=valores[i];inp.setAttribute("aria-label","Quantidade de "+p.nome);
+      const inp=document.createElement("input");inp.className="qtd-in";inp.type="text";inp.inputMode="numeric";inp.enterKeyHint="next";inp.maxLength=6;inp.placeholder="—";inp.value=valores[i];inp.setAttribute("aria-label","Quantidade de "+p.nome);
       inp.addEventListener("input",()=>{let v=inp.value.replace(/[^\d]/g,"");if(v.length>1)v=v.replace(/^0+(?=\d)/,"");inp.value=v;valores[i]=v;salvar();pintar(i);atualizarTotal();});
       inp.addEventListener("focus",()=>inp.select());
+      inp.addEventListener("keydown",(e)=>{if(e.key==="Enter"){e.preventDefault();focarProximo(i);}});
       item.append(nm,inp);lista.append(item);refs.push({item,inp});pintar(i);
     }
   });
   atualizarTotal();
 }
 function pintar(i){const r=refs[i];if(!r)return;const tem=valores[i]!=="";r.item.classList.toggle("tem",tem);r.inp.classList.toggle("vazio",!tem);}
-function atualizarTotal(){document.getElementById("totalNum").textContent=valores.filter(v=>v!=="").length;}
+function atualizarConts(){hdrs.forEach(h=>{if(!h.cont)return;let n=0;for(let i=h.ini;i<h.fim;i++)if(valores[i]!=="")n++;h.cont.textContent=n+"/"+(h.fim-h.ini);});}
+function atualizarTotal(){document.getElementById("totalNum").textContent=valores.filter(v=>v!=="").length;atualizarConts();}
+// foca o próximo campo VISÍVEL (respeita busca/filtro); no último, fecha o teclado
+function focarProximo(i){for(let j=i+1;j<refs.length;j++){if(refs[j].item.style.display!=="none"){refs[j].inp.focus();return;}}if(refs[i])refs[i].inp.blur();}
 const busca=document.getElementById("busca"),limparBusca=document.getElementById("limparBusca");
 busca.addEventListener("input",filtrar);
 limparBusca.addEventListener("click",()=>{busca.value="";filtrar();busca.focus();});
+let soFaltam=false;
 function filtrar(){
   const termos=norm(busca.value.trim()).split(/\s+/).filter(Boolean);
   limparBusca.classList.toggle("on",busca.value.length>0);
   let vis=0;
-  refs.forEach((r,i)=>{const ok=termos.every(t=>NOMES_NORM[i].includes(t));r.item.style.display=ok?"":"none";if(ok)vis++;});
+  refs.forEach((r,i)=>{const ok=termos.every(t=>NOMES_NORM[i].includes(t))&&(!soFaltam||valores[i]==="");r.item.style.display=ok?"":"none";if(ok)vis++;});
   hdrs.forEach(h=>{let algum=false;for(let i=h.ini;i<h.fim;i++){if(refs[i].item.style.display!=="none"){algum=true;break;}}h.el.style.display=algum?"":"none";});
   let vz=document.getElementById("vazioBusca");
-  if(vis===0){if(!vz){vz=document.createElement("div");vz.id="vazioBusca";vz.className="vazio-busca";lista.append(vz);}vz.textContent="Nenhum produto encontrado.";}
+  if(vis===0){if(!vz){vz=document.createElement("div");vz.id="vazioBusca";vz.className="vazio-busca";lista.append(vz);}vz.textContent=(soFaltam&&!termos.length)?"Tudo contado! 🎉":"Nenhum produto encontrado.";}
   else if(vz){vz.remove();}
 }
+const toggleFaltam=document.getElementById("toggleFaltam");
+toggleFaltam.addEventListener("click",()=>{
+  soFaltam=!soFaltam;
+  toggleFaltam.classList.toggle("on",soFaltam);
+  toggleFaltam.setAttribute("aria-pressed",String(soFaltam));
+  filtrar();
+  // ao ligar, volta ao topo para começar a contar o que falta
+  if(soFaltam) lista.scrollTop=0;
+});
 function preenchidos(){const out=[];PRODUTOS.forEach((p,i)=>{if(valores[i]!=="")out.push({sku:p.sku,nome:p.nome,marca:p.marca,qtd:valores[i]});});return out;}
 function textoEnvio(){const itens=preenchidos();const data=new Date().toLocaleDateString("pt-BR");if(itens.length===0)return "Estoque ("+data+")\nNenhum produto preenchido.";let t="Estoque ("+data+")\n\n";itens.forEach(x=>{t+=x.sku+" - "+x.qtd+"\n";});t+="\n"+itens.length+" itens";return t;}
 function listaSku(){return preenchidos().map(x=>x.sku+" - "+x.qtd).join("\n");}
@@ -288,6 +312,36 @@ document.getElementById("btnCopiar").addEventListener("click",()=>copiar(listaSk
 document.getElementById("btnShareWpp").addEventListener("click",async()=>{const txt=textoEnvio();if(navigator.share){try{await navigator.share({text:txt});}catch(e){}}else{window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank");}});
 document.getElementById("btnCopiarResumo").addEventListener("click",()=>copiar(textoEnvio(),"Lista copiada"));
 document.getElementById("btnLimparTudo").addEventListener("click",()=>{if(confirm("Apagar todas as quantidades e começar uma contagem nova?")){valores=PRODUTOS.map(()=> "");salvar();refs.forEach((r,i)=>{r.inp.value="";pintar(i);});atualizarTotal();fecharSheet();fecharResumo();toast("Pronto — campos zerados");}});
+// Backup: exporta a contagem como arquivo .json (mapa SKU -> quantidade)
+function mapaValores(){const o={};PRODUTOS.forEach((p,i)=>{if(valores[i]!=="")o[p.sku]=valores[i];});return o;}
+document.getElementById("btnExportar").addEventListener("click",()=>{
+  const payload={app:"contagem-estoque",versao:1,data:new Date().toISOString(),valores:mapaValores()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="contagem-estoque-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  toast("Backup gerado");
+});
+const fileImport=document.getElementById("fileImport");
+document.getElementById("btnImportar").addEventListener("click",()=>fileImport.click());
+fileImport.addEventListener("change",()=>{
+  const f=fileImport.files&&fileImport.files[0];fileImport.value="";if(!f)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const o=JSON.parse(reader.result);
+      const mapa=(o&&o.valores&&typeof o.valores==="object")?o.valores:(o&&typeof o==="object"?o:null);
+      if(!mapa)throw 0;
+      if(!confirm("Substituir a contagem atual pelos dados do arquivo?"))return;
+      valores=PRODUTOS.map(p=>(p.sku in mapa)?String(mapa[p.sku]).replace(/[^\d]/g,"").slice(0,6):"");
+      salvar();refs.forEach((r,i)=>{r.inp.value=valores[i];pintar(i);});
+      atualizarTotal();fecharSheet();toast("Contagem importada");
+    }catch(e){toast("Arquivo inválido");}
+  };
+  reader.readAsText(f);
+});
 function copiar(texto,msg){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(texto).then(()=>toast(msg)).catch(()=>fallback(texto,msg));}else fallback(texto,msg);}
 function fallback(texto,msg){const ta=document.createElement("textarea");ta.value=texto;ta.style.position="fixed";ta.style.opacity="0";document.body.append(ta);ta.select();try{document.execCommand("copy");toast(msg);}catch(e){toast("Não consegui copiar");}ta.remove();}
 let tt=null;function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),2200);}
