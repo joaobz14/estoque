@@ -112,7 +112,8 @@
 </footer>
 <div class="sheet-bg" id="sheetBg"></div>
 <div class="sheet" id="sheet"><div id="sheetMenu">
-  <h2>Opções</h2><p>Exporte um backup antes de limpar. Limpe tudo só depois de enviar a contagem atual.</p>
+  <h2>Opções</h2><p>Gere a planilha de importação (Excel) para subir no UpSeller. Exporte um backup antes de limpar.</p>
+  <button class="acao enviar" id="btnPlanilha">Gerar planilha p/ importar (Excel)</button>
   <button class="acao copiar" id="btnExportar">Exportar contagem (backup)</button>
   <button class="acao fechar-sheet" id="btnImportar">Importar contagem (arquivo)</button>
   <button class="acao reset" id="btnLimparTudo">Limpar tudo (zerar campos)</button>
@@ -348,6 +349,51 @@ document.getElementById("btnCopiar").addEventListener("click",()=>copiar(listaSk
 document.getElementById("btnShareWpp").addEventListener("click",async()=>{const txt=textoEnvio();if(navigator.share){try{await navigator.share({text:txt});}catch(e){}}else{window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank");}});
 document.getElementById("btnCopiarResumo").addEventListener("click",()=>copiar(textoEnvio(),"Lista copiada"));
 document.getElementById("btnLimparTudo").addEventListener("click",()=>{if(confirm("Apagar todas as quantidades e começar uma contagem nova?")){valores=PRODUTOS.map(()=> "");salvar();refs.forEach((r,i)=>{r.inp.value="";pintar(i);});atualizarTotal();fecharSheet();fecharResumo();toast("Pronto — campos zerados");}});
+// Planilha de importação (.xlsx real) p/ UpSeller: Coluna A = SKU, Coluna B = Quantidade.
+// Gera um XLSX OOXML mínimo (ZIP "store" + strings inline), sem bibliotecas externas.
+function _crc32(bytes){let c,crc=0xFFFFFFFF;if(!_crc32.t){const t=new Uint32Array(256);for(let n=0;n<256;n++){c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}_crc32.t=t;}const t=_crc32.t;for(let i=0;i<bytes.length;i++)crc=t[(crc^bytes[i])&0xff]^(crc>>>8);return (crc^0xFFFFFFFF)>>>0;}
+function _u8(str){return new TextEncoder().encode(str);}
+function _escXml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function _planilhaPartes(itens){
+  const HDR_A="SKU*",HDR_B="Quantidade*\n(limite 1-999999)";
+  let rows='<row r="1"><c r="A1" t="inlineStr"><is><t xml:space="preserve">'+_escXml(HDR_A)+'</t></is></c><c r="B1" t="inlineStr"><is><t xml:space="preserve">'+_escXml(HDR_B)+'</t></is></c></row>';
+  itens.forEach((x,k)=>{const n=k+2;rows+='<row r="'+n+'"><c r="A'+n+'" t="inlineStr"><is><t xml:space="preserve">'+_escXml(x.sku)+'</t></is></c><c r="B'+n+'"><v>'+parseInt(x.qtd,10)+'</v></c></row>';});
+  const sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+rows+'</sheetData></worksheet>';
+  return [
+   ["[Content_Types].xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'],
+   ["_rels/.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+   ["xl/workbook.xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>'],
+   ["xl/_rels/workbook.xml.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'],
+   ["xl/worksheets/sheet1.xml",sheet]
+  ];
+}
+function gerarPlanilhaBlob(itens){
+  const files=_planilhaPartes(itens);
+  const le16=n=>[n&0xff,(n>>8)&0xff],le32=n=>[n&0xff,(n>>8)&0xff,(n>>16)&0xff,(n>>>24)&0xff];
+  const chunks=[],central=[];let offset=0;
+  files.forEach(([name,content])=>{
+    const data=_u8(content),nb=_u8(name),crc=_crc32(data);
+    const lh=[].concat(le32(0x04034b50),le16(20),le16(0),le16(0),le16(0),le16(0),le32(crc),le32(data.length),le32(data.length),le16(nb.length),le16(0));
+    chunks.push(new Uint8Array(lh),nb,data);
+    const cd=[].concat(le32(0x02014b50),le16(20),le16(20),le16(0),le16(0),le16(0),le16(0),le32(crc),le32(data.length),le32(data.length),le16(nb.length),le16(0),le16(0),le16(0),le16(0),le32(0),le32(offset));
+    central.push(new Uint8Array(cd),nb);
+    offset+=lh.length+nb.length+data.length;
+  });
+  let cdLen=0;central.forEach(c=>cdLen+=c.length);
+  const eocd=new Uint8Array([].concat(le32(0x06054b50),le16(0),le16(0),le16(files.length),le16(files.length),le32(cdLen),le32(offset),le16(0)));
+  return new Blob(chunks.concat(central,[eocd]),{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+document.getElementById("btnPlanilha").addEventListener("click",()=>{
+  const itens=preenchidos();
+  if(itens.length===0){toast("Preencha alguma quantidade primeiro");return;}
+  const blob=gerarPlanilhaBlob(itens);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="importacao-estoque-"+new Date().toISOString().slice(0,10)+".xlsx";
+  document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  fecharSheet();toast(itens.length+" itens na planilha");
+});
 // Backup: exporta a contagem como arquivo .json (mapa SKU -> quantidade)
 function mapaValores(){const o={};PRODUTOS.forEach((p,i)=>{if(valores[i]!=="")o[p.sku]=valores[i];});return o;}
 document.getElementById("btnExportar").addEventListener("click",()=>{
