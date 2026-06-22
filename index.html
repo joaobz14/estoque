@@ -127,6 +127,7 @@
 </div>
 <div class="toast" id="toast"></div>
 <div class="update-bar" id="updateBar"><div class="txt">Nova versão disponível</div><button id="btnAtualizar">Atualizar agora</button></div>
+<script src="./planilha-modelo.js"></script>
 <script>
 "use strict";
 const CATALOGO = [
@@ -349,30 +350,32 @@ document.getElementById("btnCopiar").addEventListener("click",()=>copiar(listaSk
 document.getElementById("btnShareWpp").addEventListener("click",async()=>{const txt=textoEnvio();if(navigator.share){try{await navigator.share({text:txt});}catch(e){}}else{window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank");}});
 document.getElementById("btnCopiarResumo").addEventListener("click",()=>copiar(textoEnvio(),"Lista copiada"));
 document.getElementById("btnLimparTudo").addEventListener("click",()=>{if(confirm("Apagar todas as quantidades e começar uma contagem nova?")){valores=PRODUTOS.map(()=> "");salvar();refs.forEach((r,i)=>{r.inp.value="";pintar(i);});atualizarTotal();fecharSheet();fecharResumo();toast("Pronto — campos zerados");}});
-// Planilha de importação (.xlsx real) p/ UpSeller: Coluna A = SKU, Coluna B = Quantidade.
-// Gera um XLSX OOXML mínimo (ZIP "store" + strings inline), sem bibliotecas externas.
+// Planilha de importação (.xlsx) p/ UpSeller: Coluna A = SKU, Coluna B = Quantidade.
+// Reproduz FIELMENTE o template oficial (window.MODELO_XLSX, em planilha-modelo.js):
+// mantém estilos/fontes/sharedStrings byte a byte e só reescreve a aba e as strings.
 function _crc32(bytes){let c,crc=0xFFFFFFFF;if(!_crc32.t){const t=new Uint32Array(256);for(let n=0;n<256;n++){c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}_crc32.t=t;}const t=_crc32.t;for(let i=0;i<bytes.length;i++)crc=t[(crc^bytes[i])&0xff]^(crc>>>8);return (crc^0xFFFFFFFF)>>>0;}
 function _u8(str){return new TextEncoder().encode(str);}
+function _b64u8(b64){const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
 function _escXml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function _planilhaPartes(itens){
-  const HDR_A="SKU*",HDR_B="Quantidade*\n(limite 1-999999)";
-  let rows='<row r="1"><c r="A1" t="inlineStr"><is><t xml:space="preserve">'+_escXml(HDR_A)+'</t></is></c><c r="B1" t="inlineStr"><is><t xml:space="preserve">'+_escXml(HDR_B)+'</t></is></c></row>';
-  itens.forEach((x,k)=>{const n=k+2;rows+='<row r="'+n+'"><c r="A'+n+'" t="inlineStr"><is><t xml:space="preserve">'+_escXml(x.sku)+'</t></is></c><c r="B'+n+'"><v>'+parseInt(x.qtd,10)+'</v></c></row>';});
-  const sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+rows+'</sheetData></worksheet>';
-  return [
-   ["[Content_Types].xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'],
-   ["_rels/.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
-   ["xl/workbook.xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>'],
-   ["xl/_rels/workbook.xml.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'],
-   ["xl/worksheets/sheet1.xml",sheet]
-  ];
-}
 function gerarPlanilhaBlob(itens){
-  const files=_planilhaPartes(itens);
-  const le16=n=>[n&0xff,(n>>8)&0xff],le32=n=>[n&0xff,(n>>8)&0xff,(n>>16)&0xff,(n>>>24)&0xff];
+  const M=window.MODELO_XLSX,dec=new TextDecoder(),n=itens.length;
+  // sharedStrings: 4 cabeçalhos originais + 1 entrada por SKU
+  let sst=dec.decode(_b64u8(M["xl/sharedStrings.xml"]));
+  const extra=itens.map(x=>'<si><t xml:space="preserve">'+_escXml(x.sku)+'</t></si>').join("");
+  sst=sst.replace('count="4" uniqueCount="4"','count="'+(4+n)+'" uniqueCount="'+(4+n)+'"').replace("</sst>",extra+"</sst>");
+  // worksheet: dimensão A1:D(1+n) + linhas de dados (A=SKU via sharedString, B=quantidade numérica)
+  let sheet=dec.decode(_b64u8(M["xl/worksheets/sheet1.xml"]));
+  sheet=sheet.replace('<dimension ref="A1:D1"/>','<dimension ref="A1:D'+(1+n)+'"/>');
+  let rows="";
+  itens.forEach((x,k)=>{const r=k+2,idx=4+k;rows+='<row r="'+r+'" spans="1:4"><c r="A'+r+'" t="s"><v>'+idx+'</v></c><c r="B'+r+'"><v>'+parseInt(x.qtd,10)+'</v></c></row>';});
+  sheet=sheet.replace("</sheetData>",rows+"</sheetData>");
+  const partes={};Object.keys(M).forEach(k=>partes[k]=_b64u8(M[k]));
+  partes["xl/sharedStrings.xml"]=_u8(sst);partes["xl/worksheets/sheet1.xml"]=_u8(sheet);
+  const order=["[Content_Types].xml","_rels/.rels","docProps/app.xml","docProps/core.xml","docProps/custom.xml","xl/workbook.xml","xl/_rels/workbook.xml.rels","xl/worksheets/sheet1.xml","xl/sharedStrings.xml","xl/styles.xml","xl/theme/theme1.xml"];
+  const le16=v=>[v&0xff,(v>>8)&0xff],le32=v=>[v&0xff,(v>>8)&0xff,(v>>16)&0xff,(v>>>24)&0xff];
   const chunks=[],central=[];let offset=0;
-  files.forEach(([name,content])=>{
-    const data=_u8(content),nb=_u8(name),crc=_crc32(data);
+  order.forEach(name=>{
+    const data=partes[name],nb=_u8(name),crc=_crc32(data);
     const lh=[].concat(le32(0x04034b50),le16(20),le16(0),le16(0),le16(0),le16(0),le32(crc),le32(data.length),le32(data.length),le16(nb.length),le16(0));
     chunks.push(new Uint8Array(lh),nb,data);
     const cd=[].concat(le32(0x02014b50),le16(20),le16(20),le16(0),le16(0),le16(0),le16(0),le32(crc),le32(data.length),le32(data.length),le16(nb.length),le16(0),le16(0),le16(0),le16(0),le32(0),le32(offset));
@@ -380,7 +383,7 @@ function gerarPlanilhaBlob(itens){
     offset+=lh.length+nb.length+data.length;
   });
   let cdLen=0;central.forEach(c=>cdLen+=c.length);
-  const eocd=new Uint8Array([].concat(le32(0x06054b50),le16(0),le16(0),le16(files.length),le16(files.length),le32(cdLen),le32(offset),le16(0)));
+  const eocd=new Uint8Array([].concat(le32(0x06054b50),le16(0),le16(0),le16(order.length),le16(order.length),le32(cdLen),le32(offset),le16(0)));
   return new Blob(chunks.concat(central,[eocd]),{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
 }
 document.getElementById("btnPlanilha").addEventListener("click",()=>{
