@@ -132,7 +132,7 @@
 <div class="full" id="resumoFull">
   <div class="full-head"><button class="full-voltar" id="resumoFechar" aria-label="Voltar">‹</button><div class="full-titulo">Resumo do estoque</div></div>
   <div class="full-body" id="resumoBody"></div>
-  <div class="full-foot"><button class="acao enviar" id="btnShareWpp">Enviar pelo WhatsApp</button><button class="acao copiar" id="btnCopiarResumo">Copiar lista (SKU)</button></div>
+  <div class="full-foot"><button class="acao enviar" id="btnShareWpp">Enviar pelo WhatsApp</button><button class="acao copiar" id="btnCopiarResumo">Copiar lista</button></div>
 </div>
 <div class="toast" id="toast"></div>
 <div class="update-bar" id="updateBar"><div class="txt">Nova versão disponível</div><button id="btnAtualizar">Atualizar agora</button></div>
@@ -361,7 +361,8 @@ toggleFaltam.addEventListener("click",()=>{
   if(soFaltam) lista.scrollTop=0;
 });
 function preenchidos(){const out=[];PRODUTOS.forEach((p,i)=>{if(valores[i]!=="")out.push({sku:p.sku,nome:p.nome,marca:p.marca,qtd:valores[i]});});return out;}
-function textoEnvio(){const itens=preenchidos();const data=new Date().toLocaleDateString("pt-BR");if(itens.length===0)return "Estoque ("+data+")\nNenhum produto preenchido.";let t="Estoque ("+data+")\n\n";itens.forEach(x=>{t+=x.sku+" - "+x.qtd+"\n";});t+="\n"+itens.length+" itens";return t;}
+// Texto do "Enviar"/WhatsApp: usa o NOME do produto (a planilha .xlsx continua por SKU).
+function textoEnvio(){const itens=preenchidos();const data=new Date().toLocaleDateString("pt-BR");if(itens.length===0)return "Estoque ("+data+")\nNenhum produto preenchido.";let t="Estoque ("+data+")\n\n";itens.forEach(x=>{t+=x.nome+" - "+x.qtd+"\n";});t+="\n"+itens.length+" itens";return t;}
 function listaSku(){return preenchidos().map(x=>x.sku+" - "+x.qtd).join("\n");}
 const sheetBg=document.getElementById("sheetBg"),sheet=document.getElementById("sheet");
 function abrirMenu(){sheetBg.classList.add("on");sheet.classList.add("on");}
