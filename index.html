@@ -45,6 +45,15 @@
   .item{display:flex;align-items:center;gap:10px;background:var(--branco);border:1px solid var(--linha);border-radius:13px;padding:9px 12px 9px 14px;margin-bottom:8px}
   .item.tem{border-color:#a9d8c8;background:#fbfefd}
   .nome{flex:1 1 auto;font-size:15.5px;font-weight:600;line-height:1.2;min-width:0}
+  /* produtos com variações (voltagem/lado): nome uma vez + sub-linhas */
+  .card{background:var(--branco);border:1px solid var(--linha);border-radius:13px;padding:4px 12px 6px;margin-bottom:8px}
+  .card.tem{border-color:#a9d8c8;background:#fbfefd}
+  .card-nome{font-size:15.5px;font-weight:700;line-height:1.2;padding:8px 2px 4px}
+  .var-row{display:flex;align-items:center;gap:10px;padding:7px 0}
+  .var-row + .var-row{border-top:1px solid var(--linha)}
+  .var-lbl{flex:0 0 auto;min-width:56px;text-align:center;background:#eef1f5;color:#5b6677;font-weight:800;font-size:13.5px;letter-spacing:.3px;padding:9px 10px;border-radius:9px}
+  .var-row.tem .var-lbl{background:#e2f3ec;color:var(--verde)}
+  .var-row .qtd-in{margin-left:auto}
   .qtd-in{flex:0 0 auto;width:84px;height:50px;border:2px solid var(--linha);border-radius:11px;font-size:22px;font-weight:800;text-align:center;color:var(--verde);outline:none;background:#fff}
   .qtd-in:focus{border-color:var(--verde)}
   .qtd-in.vazio{color:#b9c1cd;font-weight:600}
@@ -268,27 +277,61 @@ function carregar(){try{const raw=localStorage.getItem(CHAVE);if(raw){const o=JS
 function salvar(){try{localStorage.setItem(CHAVE,JSON.stringify(mapaValores()));}catch(e){}}
 function norm(s){return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();}
 const NOMES_NORM=PRODUTOS.map(p=>norm(p.nome+" "+p.sku+" "+p.marca));
-const lista=document.getElementById("lista");const refs=[];const hdrs=[];
+const lista=document.getElementById("lista");const refs=[];const hdrs=[];const CARDS=[];
+// detecta variação do mesmo produto: voltagem (110/220/127) ou lado (ESQUERDO/DIREITO).
+// devolve {base, lbl} — base é o nome sem o token de variação; lbl é o rótulo da linha.
+function infoVar(nome){
+  let m=nome.match(/\b(110|220|127)\b/);
+  if(m)return{base:nome.replace(/\b(110|220|127)\b/,"").replace(/\s+/g," ").trim(),lbl:m[1]};
+  m=nome.match(/\b(ESQUERDO|DIREITO)\b/);
+  if(m)return{base:nome.replace(/\b(ESQUERDO|DIREITO)\b/,"").replace(/\s+/g," ").trim(),lbl:m[1]};
+  return null;
+}
+function criaInput(i){
+  const p=PRODUTOS[i];
+  const inp=document.createElement("input");inp.className="qtd-in";inp.type="text";inp.inputMode="numeric";inp.enterKeyHint="next";inp.maxLength=6;inp.placeholder="—";inp.value=valores[i];inp.setAttribute("aria-label","Quantidade de "+p.nome);
+  inp.addEventListener("input",()=>{let v=inp.value.replace(/[^\d]/g,"");if(v.length>1)v=v.replace(/^0+(?=\d)/,"");inp.value=v;valores[i]=v;salvar();pintar(i);atualizarTotal();});
+  inp.addEventListener("focus",()=>inp.select());
+  inp.addEventListener("keydown",(e)=>{if(e.key==="Enter"){e.preventDefault();focarProximo(i);}});
+  return inp;
+}
 function montar(){
-  lista.innerHTML="";refs.length=0;hdrs.length=0;
+  lista.innerHTML="";refs.length=0;hdrs.length=0;CARDS.length=0;
   GRUPOS.forEach(g=>{
     const h=document.createElement("div");h.className="marca-hdr";
     h.innerHTML=g.marca+' <span class="cont"></span>';
     lista.append(h);hdrs.push({el:h,ini:g.ini,fim:g.fim,cont:h.querySelector(".cont")});
+    // conta quantos itens compartilham a mesma base (só vira card se houver 2+)
+    const info=[],cont={};
+    for(let i=g.ini;i<g.fim;i++){const iv=infoVar(PRODUTOS[i].nome);info[i]=iv;if(iv)cont[iv.base]=(cont[iv.base]||0)+1;}
+    const cardByKey={};
     for(let i=g.ini;i<g.fim;i++){
-      const p=PRODUTOS[i];
-      const item=document.createElement("div");item.className="item";
-      const nm=document.createElement("div");nm.className="nome";nm.textContent=p.nome;
-      const inp=document.createElement("input");inp.className="qtd-in";inp.type="text";inp.inputMode="numeric";inp.enterKeyHint="next";inp.maxLength=6;inp.placeholder="—";inp.value=valores[i];inp.setAttribute("aria-label","Quantidade de "+p.nome);
-      inp.addEventListener("input",()=>{let v=inp.value.replace(/[^\d]/g,"");if(v.length>1)v=v.replace(/^0+(?=\d)/,"");inp.value=v;valores[i]=v;salvar();pintar(i);atualizarTotal();});
-      inp.addEventListener("focus",()=>inp.select());
-      inp.addEventListener("keydown",(e)=>{if(e.key==="Enter"){e.preventDefault();focarProximo(i);}});
-      item.append(nm,inp);lista.append(item);refs.push({item,inp});pintar(i);
+      const p=PRODUTOS[i],iv=info[i];
+      if(iv&&cont[iv.base]>1){
+        let card=cardByKey[iv.base];
+        if(!card){
+          const el=document.createElement("div");el.className="card";
+          const nm=document.createElement("div");nm.className="card-nome";nm.textContent=iv.base;
+          el.append(nm);lista.append(el);
+          card={el,membros:[]};cardByKey[iv.base]=card;CARDS.push(card);
+        }
+        const row=document.createElement("div");row.className="var-row";
+        const lbl=document.createElement("div");lbl.className="var-lbl";lbl.textContent=iv.lbl;
+        const inp=criaInput(i);
+        row.append(lbl,inp);card.el.append(row);card.membros.push(i);
+        refs.push({item:row,inp,card:card.el,mates:card.membros});pintar(i);
+      }else{
+        const item=document.createElement("div");item.className="item";
+        const nm=document.createElement("div");nm.className="nome";nm.textContent=p.nome;
+        const inp=criaInput(i);
+        item.append(nm,inp);lista.append(item);
+        refs.push({item,inp,card:null,mates:[i]});pintar(i);
+      }
     }
   });
   atualizarTotal();
 }
-function pintar(i){const r=refs[i];if(!r)return;const tem=valores[i]!=="";r.item.classList.toggle("tem",tem);r.inp.classList.toggle("vazio",!tem);}
+function pintar(i){const r=refs[i];if(!r)return;const tem=valores[i]!=="";r.item.classList.toggle("tem",tem);r.inp.classList.toggle("vazio",!tem);if(r.card)r.card.classList.toggle("tem",r.mates.some(j=>valores[j]!==""));}
 function atualizarConts(){hdrs.forEach(h=>{if(!h.cont)return;let n=0;for(let i=h.ini;i<h.fim;i++)if(valores[i]!=="")n++;h.cont.textContent=n+"/"+(h.fim-h.ini);});}
 function atualizarTotal(){document.getElementById("totalNum").textContent=valores.filter(v=>v!=="").length;atualizarConts();}
 // foca o próximo campo VISÍVEL (respeita busca/filtro); no último, fecha o teclado
@@ -302,6 +345,7 @@ function filtrar(){
   limparBusca.classList.toggle("on",busca.value.length>0);
   let vis=0;
   refs.forEach((r,i)=>{const ok=termos.every(t=>NOMES_NORM[i].includes(t))&&(!soFaltam||valores[i]==="");r.item.style.display=ok?"":"none";if(ok)vis++;});
+  CARDS.forEach(c=>{c.el.style.display=c.membros.some(i=>refs[i].item.style.display!=="none")?"":"none";});
   hdrs.forEach(h=>{let algum=false;for(let i=h.ini;i<h.fim;i++){if(refs[i].item.style.display!=="none"){algum=true;break;}}h.el.style.display=algum?"":"none";});
   let vz=document.getElementById("vazioBusca");
   if(vis===0){if(!vz){vz=document.createElement("div");vz.id="vazioBusca";vz.className="vazio-busca";lista.append(vz);}vz.textContent=(soFaltam&&!termos.length)?"Tudo contado! 🎉":"Nenhum produto encontrado.";}
