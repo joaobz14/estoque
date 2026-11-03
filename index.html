@@ -2,155 +2,272 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#0f6e56">
+<meta name="color-scheme" content="light">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Contagem de Estoque</title>
 <style>
-  :root{--verde:#0f6e56;--verde-escuro:#0a4f3e;--azul:#1f3a5f;--cinza:#5b6677;
-    --linha:#e2e6ec;--fundo:#eef1f5;--branco:#fff;--vermelho:#b00020;}
+  /* ===== Cores (tema claro) ===== */
+  :root{
+    --verde:#0f6e56; --verde-escuro:#0a4f3e;      /* botões principais e cabeçalho */
+    --acento:#0f6e56;                              /* texto e bordas em verde */
+    --verde-claro:#e2f2eb; --verde-borda:#86c7b0; --foco:#eaf6f1;
+    --azul:#1f3a5f; --azul-escuro:#16294a;
+    --vermelho:#b00020; --vermelho-claro:#fbeaec; --vermelho-borda:#f0c4cb;
+    --fundo:#eef1f5; --cartao:#ffffff; --linha:#dde2e9; --trilho:#d5dbe3;
+    --texto:#16202c; --texto2:#4c5868; --apagado:#6b7483;
+    --cinza-btn:#e3e8ef; --cinza-btn-ativo:#d3dae4;
+    --cab:#0f6e56; --cab-sub:#d2efe4; --cab-chip:#2c7f69; --cab-chip-ativo:#ffffff;
+    --sombra:rgba(15,25,40,.55);
+  }
+  /* Tema sempre claro (o modo escuro automático da proposta foi deixado de fora). */
+
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
   html,body{height:100%}
-  body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--fundo);
-    color:#1a2230;display:flex;flex-direction:column;height:100dvh;overflow:hidden}
-  header{background:var(--verde);color:#fff;padding:12px 14px 10px;flex:0 0 auto}
-  .titulo{font-size:19px;font-weight:800;letter-spacing:.3px}
-  .sub{font-size:12.5px;color:#bfe3d7;margin-top:2px}
-  .busca-wrap{position:relative;margin-top:10px}
-  .nav-row{display:flex;gap:7px;align-items:center;margin-top:9px}
-  .filtro-toggle{flex:0 0 auto;border:none;background:rgba(255,255,255,.16);color:#fff;
-    font-size:12.5px;font-weight:700;padding:8px 12px;border-radius:20px;white-space:nowrap}
-  .filtro-toggle.on{background:#fff;color:var(--verde)}
-  .marcas-bar{display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;
-    flex:1 1 auto;min-width:0;padding-bottom:2px;scrollbar-width:none}
-  .marcas-bar::-webkit-scrollbar{display:none}
-  .marca-chip{flex:0 0 auto;border:none;background:rgba(255,255,255,.16);color:#fff;
-    font-size:13px;font-weight:700;padding:8px 13px;border-radius:20px;white-space:nowrap}
-  .marca-chip:active{background:rgba(255,255,255,.30)}
-  .marca-chip.ativo{background:#fff;color:var(--verde)}
-  #busca{width:100%;border:none;border-radius:11px;padding:14px 44px 14px 16px;font-size:17px;background:#fff;color:#1a2230;outline:none}
-  #busca::placeholder{color:#8a93a3}
-  .limpar-busca{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:#dfe4ec;color:#5b6677;width:32px;height:32px;border-radius:8px;font-size:18px;display:none;align-items:center;justify-content:center}
+  body{font-family:-apple-system,Roboto,"Segoe UI",Arial,sans-serif;background:var(--fundo);
+    color:var(--texto);display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+  button{font:inherit;cursor:pointer}
+  svg{display:block;flex:0 0 auto}
+
+  /* ===== Cabeçalho ===== */
+  header{background:var(--cab);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;flex:0 0 auto}
+  .cab-topo{padding:0 4px 10px}
+  .titulo{font-size:18px;font-weight:800;letter-spacing:.2px;line-height:1.2}
+  .sub{font-size:13.5px;color:var(--cab-sub);margin-top:2px;font-weight:600}
+  .busca-wrap{position:relative}
+  .busca-wrap .lupa{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#5b6677;pointer-events:none}
+  #busca{width:100%;height:48px;border:none;border-radius:12px;padding:0 52px 0 44px;font-size:17px;background:#fff;color:#16202c;outline:none}
+  #busca::placeholder{color:#6b7483}
+  #busca:focus{box-shadow:0 0 0 3px rgba(255,255,255,.55)}
+  .limpar-busca{position:absolute;right:2px;top:2px;width:44px;height:44px;border:none;border-radius:9px;background:#e3e8ef;color:#3c4756;display:none;align-items:center;justify-content:center}
   .limpar-busca.on{display:flex}
-  main{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px 12px;position:relative}
-  .marca-hdr{position:sticky;top:0;background:var(--fundo);font-size:13px;font-weight:800;color:var(--verde);
-    text-transform:uppercase;letter-spacing:.7px;padding:12px 6px 6px;z-index:1}
+  .nav-row{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .filtro-toggle{flex:0 0 auto;display:flex;align-items:center;gap:7px;height:44px;border:2px solid rgba(255,255,255,.75);background:transparent;color:#fff;
+    font-size:14.5px;font-weight:800;padding:0 14px 0 10px;border-radius:22px;white-space:nowrap}
+  .filtro-toggle .ft-ico{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center}
+  .filtro-toggle .ft-ico svg{display:none}
+  .filtro-toggle.on{background:#fff;border-color:#fff;color:#0f6e56}
+  .filtro-toggle.on .ft-ico{background:#0f6e56;border-color:#0f6e56;color:#fff}
+  .filtro-toggle.on .ft-ico svg{display:block}
+  .nav-sep{flex:0 0 auto;width:1px;height:26px;background:rgba(255,255,255,.35)}
+  /* position:relative faz o offsetLeft dos botões contar a partir da barra (antes contava da página
+     e o botão ativo ficava meio escondido ao rolar até as últimas marcas) */
+  .marcas-bar{position:relative;display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    flex:1 1 auto;min-width:0;scrollbar-width:none}
+  .marcas-bar::-webkit-scrollbar{display:none}
+  .marca-chip{flex:0 0 auto;height:44px;border:none;background:var(--cab-chip);color:#fff;
+    font-size:14.5px;font-weight:800;padding:0 15px;border-radius:22px;white-space:nowrap;letter-spacing:.2px}
+  .marca-chip:active{filter:brightness(1.15)}
+  .marca-chip.ativo{background:var(--cab-chip-ativo);color:#0f6e56}
+
+  /* ===== Lista ===== */
+  main{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 12px 16px;position:relative;overscroll-behavior:contain}
+  .marca-hdr{position:sticky;top:0;z-index:2;display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    margin:0 -12px 8px;padding:14px 16px 14px;background:var(--fundo);
+    font-size:14px;font-weight:800;color:var(--acento);text-transform:uppercase;letter-spacing:.8px}
+  .marca-hdr::after{content:"";position:absolute;left:16px;right:16px;bottom:5px;height:4px;border-radius:2px;
+    background:linear-gradient(to right,var(--acento) calc(var(--p,0) * 100%),var(--trilho) 0)}
   /* durante a medição do alvo de rolagem, desligamos o sticky para ler a
      posição REAL (de layout) do cabeçalho, e não a posição "grudada" no topo */
   #lista.medindo .marca-hdr{position:static}
-  .marca-hdr .cont{color:#9aa3b0;font-weight:700;font-size:12px}
-  .item{display:flex;align-items:center;gap:10px;background:var(--branco);border:1px solid var(--linha);border-radius:13px;padding:9px 12px 9px 14px;margin-bottom:8px}
-  .item.tem{border-color:#a9d8c8;background:#fbfefd}
-  .nome{flex:1 1 auto;font-size:15.5px;font-weight:600;line-height:1.2;min-width:0}
+  .marca-hdr .cont{color:var(--texto2);font-weight:800;font-size:13.5px;letter-spacing:.3px;font-variant-numeric:tabular-nums;text-transform:none}
+  .marca-hdr.completo .cont{color:var(--acento)}
+  .marca-hdr.completo .cont::after{content:" · completo"}
+
+  .item{display:flex;align-items:center;gap:12px;background:var(--cartao);border:1px solid var(--linha);border-radius:14px;
+    padding:8px 8px 8px 14px;min-height:68px;margin-bottom:8px}
+  .nome{flex:1 1 auto;font-size:16px;font-weight:600;line-height:1.25;min-width:0;overflow-wrap:anywhere}
+  .item.tem,.card.tem{border-color:var(--verde-borda);box-shadow:inset 4px 0 0 var(--acento)}
+  .item.tem .nome::before{content:"";display:inline-block;width:16px;height:16px;margin-right:6px;vertical-align:-2px;background:var(--acento);
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3.2L13 4.8' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3.2L13 4.8' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat}
+  .item:focus-within{background:var(--foco);border-color:var(--acento)}
+
   /* produtos com variações (voltagem/lado): nome uma vez + sub-linhas */
-  .card{background:var(--branco);border:1px solid var(--linha);border-radius:13px;padding:4px 12px 6px;margin-bottom:8px}
-  .card.tem{border-color:#a9d8c8;background:#fbfefd}
-  .card-nome{font-size:15.5px;font-weight:700;line-height:1.2;padding:8px 2px 4px}
-  .var-row{display:flex;align-items:center;gap:10px;padding:7px 0}
-  .var-row + .var-row{border-top:1px solid var(--linha)}
-  .var-lbl{flex:0 0 auto;min-width:56px;text-align:center;background:#eef1f5;color:#5b6677;font-weight:800;font-size:13.5px;letter-spacing:.3px;padding:9px 10px;border-radius:9px}
-  .var-row.tem .var-lbl{background:#e2f3ec;color:var(--verde)}
+  .card{background:var(--cartao);border:1px solid var(--linha);border-radius:14px;padding:0 8px 4px 14px;margin-bottom:8px}
+  .card-nome{font-size:16px;font-weight:700;line-height:1.25;padding:12px 0 4px;overflow-wrap:anywhere}
+  .var-row{display:flex;align-items:center;gap:10px;padding:6px 0;margin-left:-6px;padding-left:6px;border-radius:10px}
+  .var-row + .var-row{border-top:1px solid var(--linha);border-radius:0}
+  .var-lbl{flex:0 0 auto;min-width:64px;height:40px;display:flex;align-items:center;justify-content:center;gap:5px;
+    background:var(--cinza-btn);color:var(--texto2);font-weight:800;font-size:14px;letter-spacing:.4px;padding:0 12px;border-radius:10px}
+  .var-row.tem .var-lbl{background:var(--verde-claro);color:var(--acento)}
+  .var-row.tem .var-lbl::before{content:"";width:13px;height:13px;background:currentColor;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3.2L13 4.8' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3.2L13 4.8' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat}
+  .var-row:focus-within{background:var(--foco)}
+  .var-row:focus-within .var-lbl{background:var(--acento);color:var(--cartao)}
   .var-row .qtd-in{margin-left:auto}
-  .qtd-in{flex:0 0 auto;width:84px;height:50px;border:2px solid var(--linha);border-radius:11px;font-size:22px;font-weight:800;text-align:center;color:var(--verde);outline:none;background:#fff}
-  .qtd-in:focus{border-color:var(--verde)}
-  .qtd-in.vazio{color:#b9c1cd;font-weight:600}
-  .vazio-busca{text-align:center;color:#8a93a3;font-size:15px;padding:40px 20px}
-  footer{flex:0 0 auto;background:var(--branco);border-top:1px solid var(--linha);padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
-  .total-linha{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
-  .total-rot{font-size:13px;color:var(--cinza);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-  .total-num{font-size:22px;font-weight:800;color:var(--verde);font-variant-numeric:tabular-nums}
+
+  .qtd-in{flex:0 0 auto;width:92px;height:52px;border:2px solid var(--linha);border-radius:12px;font:inherit;font-size:24px;font-weight:800;text-align:center;
+    color:var(--acento);outline:none;background:var(--cartao);font-variant-numeric:tabular-nums;scroll-margin:64px 0 16px}
+  .qtd-in::placeholder{color:var(--apagado);font-weight:600}
+  .qtd-in:focus{border-color:var(--acento);border-width:3px;box-shadow:0 0 0 3px rgba(15,110,86,.22)}
+  .qtd-in.vazio{color:var(--apagado);font-weight:600}
+  .vazio-busca{text-align:center;color:var(--texto2);font-size:16px;font-weight:600;line-height:1.4;padding:48px 24px}
+
+  /* ===== Rodapé ===== */
+  footer{flex:0 0 auto;background:var(--cartao);border-top:1px solid var(--linha);padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+  .total-linha{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px}
+  .total-rot{font-size:13px;color:var(--texto2);font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+  .total-val{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .total-num{font-size:24px;font-weight:800;color:var(--acento)}
+  .total-de{font-size:14px;font-weight:700;color:var(--texto2)}
+  .total-barra{height:6px;border-radius:3px;margin:6px 4px 10px;
+    background:linear-gradient(to right,var(--acento) calc(var(--p,0) * 100%),var(--trilho) 0)}
   .acoes{display:flex;gap:8px}
-  .acao{flex:1;border:none;border-radius:11px;padding:14px 8px;font-size:15px;font-weight:800;color:#fff}
+  .acao{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:12px;min-height:52px;padding:0 10px;font-size:16px;font-weight:800;color:#fff}
   .enviar{background:var(--verde)}.enviar:active{background:var(--verde-escuro)}
-  .copiar{background:var(--azul)}.copiar:active{background:#16294a}
-  .menu-btn{flex:0 0 auto;width:52px;background:#eef1f5;color:#5b6677;font-size:22px}.menu-btn:active{background:#dfe4ec}
-  .sheet-bg{position:fixed;inset:0;background:rgba(15,25,40,.55);display:none;z-index:10}.sheet-bg.on{display:block}
-  .sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;z-index:11;border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .22s ease;max-height:80dvh;overflow:auto}
+  .copiar{background:var(--azul)}.copiar:active{background:var(--azul-escuro)}
+  .menu-btn{flex:0 0 auto;width:56px;background:var(--cinza-btn);color:var(--texto2)}.menu-btn:active{background:var(--cinza-btn-ativo)}
+
+  /* teclado aberto (a tela fica baixa): esconde o que não ajuda a contar */
+  @media (max-height:600px){
+    body:has(.qtd-in:focus) .cab-topo{display:none}
+    body:has(.qtd-in:focus) .busca-wrap:has(#busca:placeholder-shown){display:none}
+    body:has(.qtd-in:focus) .busca-wrap:not(:has(#busca:placeholder-shown)) + .nav-row{display:none}
+    body:has(.qtd-in:focus) header{padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:8px}
+    body:has(.qtd-in:focus) .nav-row{margin-top:0}
+    body:has(.qtd-in:focus) .acoes{display:none}
+    body:has(.qtd-in:focus) .total-barra{margin-bottom:2px}
+    body:has(.qtd-in:focus) .total-rot::after{content:" · “próximo” no teclado pula para o seguinte";text-transform:none;letter-spacing:0;font-weight:600}
+  }
+
+  /* ===== Menu (folha de baixo) ===== */
+  .sheet-bg{position:fixed;inset:0;background:var(--sombra);display:none;z-index:10}.sheet-bg.on{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--cartao);z-index:11;border-radius:20px 20px 0 0;
+    padding:8px 14px calc(14px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .22s ease;max-height:86dvh;overflow:auto}
   .sheet.on{transform:translateY(0)}
-  .sheet h2{font-size:17px;margin-bottom:4px}.sheet p{font-size:13.5px;color:var(--cinza);margin-bottom:12px}
-  .sheet .acao{width:100%;margin-bottom:9px}
-  .reset{background:#fbeaec;color:var(--vermelho)}.reset:active{background:#f3d6da}
-  .fechar-sheet{background:#eef1f5;color:#5b6677}
+  .alca{width:40px;height:5px;border-radius:3px;background:var(--trilho);margin:0 auto 12px}
+  .sheet h2{font-size:18px;font-weight:800;padding:0 4px}
+  .sheet p{font-size:14px;line-height:1.4;color:var(--texto2);margin:4px 4px 12px}
+  .opcao{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;border:1px solid var(--linha);background:var(--cartao);color:var(--texto);
+    border-radius:14px;padding:10px 12px;margin-bottom:8px;text-align:left}
+  .opcao:active{background:var(--fundo)}
+  .op-ico{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;background:var(--cinza-btn);color:var(--texto2)}
+  .op-ico.verde{background:var(--verde);color:#fff}
+  .op-ico.azul{background:var(--azul);color:#fff}
+  .op-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .op-txt b{font-size:16px;font-weight:800;line-height:1.25}
+  .op-txt small{font-size:13.5px;color:var(--texto2);font-weight:500;line-height:1.3}
+  .opcao.perigo{border-color:var(--vermelho-borda);background:var(--vermelho-claro);color:var(--vermelho);margin-top:14px}
+  .opcao.perigo .op-ico{background:var(--vermelho);color:var(--cartao)}
+  .opcao.perigo small{color:var(--vermelho)}
+  .fechar-sheet{width:100%;min-height:52px;border:none;border-radius:12px;background:var(--cinza-btn);color:var(--texto);font-size:16px;font-weight:800;margin-top:4px}
+  .fechar-sheet:active{background:var(--cinza-btn-ativo)}
+
+  /* ===== Resumo (tela cheia) ===== */
   .full{position:fixed;inset:0;z-index:30;background:var(--fundo);display:none;flex-direction:column}.full.on{display:flex}
-  .full-head{background:var(--verde);color:#fff;display:flex;align-items:center;gap:6px;padding:14px;flex:0 0 auto}
-  .full-voltar{border:none;background:transparent;color:#fff;font-size:30px;line-height:1;width:38px;height:38px;display:flex;align-items:center;justify-content:center;margin-left:-6px}
+  .full-head{background:var(--cab);color:#fff;display:flex;align-items:center;gap:4px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px 6px;flex:0 0 auto;min-height:64px}
+  .full-voltar{border:none;background:transparent;color:#fff;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px}
+  .full-voltar:active{background:rgba(255,255,255,.15)}
   .full-titulo{font-size:19px;font-weight:800}
-  .full-body{flex:1 1 auto;overflow-y:auto;padding:10px 12px 14px}
-  .resumo-cont{font-size:13px;color:var(--cinza);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:2px 2px 10px}
-  .resumo-marca{font-size:12.5px;font-weight:800;color:var(--verde);text-transform:uppercase;letter-spacing:.6px;margin:14px 2px 8px}
-  .resumo-vazio{text-align:center;color:#8a93a3;font-size:16px;padding:50px 24px}
-  .resumo-item{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--linha);border-radius:12px;padding:13px 15px;margin-bottom:8px}
-  .resumo-item .rnome{flex:1 1 auto;font-size:16px;font-weight:600;line-height:1.25}
-  .resumo-item .rsku{font-size:12px;color:var(--cinza);font-weight:600;margin-top:2px}
-  .resumo-item .rqtd{flex:0 0 auto;font-size:24px;font-weight:800;color:var(--verde);font-variant-numeric:tabular-nums;min-width:40px;text-align:right}
-  .full-foot{flex:0 0 auto;background:#fff;border-top:1px solid var(--linha);padding:12px 12px calc(12px + env(safe-area-inset-bottom))}
-  .full-foot .acao{width:100%;margin-bottom:9px;padding:16px 8px;font-size:16px}.full-foot .acao:last-child{margin-bottom:0}
-  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--verde-escuro);color:#fff;padding:11px 18px;border-radius:24px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:40;white-space:nowrap}
+  .full-body{flex:1 1 auto;overflow-y:auto;padding:12px 12px 16px}
+  .resumo-cont{display:inline-block;font-size:13.5px;color:var(--acento);background:var(--verde-claro);font-weight:800;text-transform:uppercase;letter-spacing:.5px;
+    padding:6px 12px;border-radius:16px;margin:2px 0 4px}
+  .resumo-marca{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:800;color:var(--acento);text-transform:uppercase;letter-spacing:.7px;margin:16px 4px 8px}
+  .resumo-marca::after{content:"";flex:1;height:1px;background:var(--linha)}
+  .resumo-vazio{text-align:center;color:var(--texto2);font-size:16px;font-weight:600;line-height:1.45;padding:56px 24px}
+  .resumo-item{display:flex;align-items:center;gap:12px;background:var(--cartao);border:1px solid var(--linha);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+  .resumo-item .rnome{flex:1 1 auto;min-width:0;font-size:16px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+  .resumo-item .rsku{font-size:13px;color:var(--texto2);font-weight:700;margin-top:3px;letter-spacing:.2px}
+  .resumo-item .rqtd{flex:0 0 auto;font-size:26px;font-weight:800;color:var(--acento);font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+  .full-foot{flex:0 0 auto;background:var(--cartao);border-top:1px solid var(--linha);padding:12px 12px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px}
+  .full-foot .acao{width:100%;min-height:56px;font-size:17px}
+  .full-foot .copiar{min-height:52px}
+
+  /* ===== Avisos ===== */
+  .toast{position:fixed;left:50%;bottom:calc(132px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(16px);background:#16202c;color:#fff;
+    padding:12px 18px;border-radius:24px;font-size:15px;font-weight:700;opacity:0;pointer-events:none;transition:.22s;z-index:40;white-space:nowrap;
+    display:flex;align-items:center;gap:8px}
+  .toast::before{content:"";width:20px;height:20px;border-radius:50%;flex:0 0 auto;
+    background:#5fd0a8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.4l3 3 6-6.4' fill='none' stroke='%2316202c' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/20px no-repeat}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-  .update-bar{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));background:var(--azul);color:#fff;border-radius:13px;z-index:50;display:none;align-items:center;gap:10px;padding:12px 12px 12px 16px;box-shadow:0 6px 24px rgba(15,25,40,.35)}
+  .update-bar{position:fixed;left:10px;right:10px;top:calc(10px + env(safe-area-inset-top));background:var(--azul);color:#fff;border-radius:14px;z-index:50;
+    display:none;align-items:center;gap:12px;padding:10px 10px 10px 14px;box-shadow:0 4px 16px rgba(15,25,40,.3)}
   .update-bar.on{display:flex}
-  .inicio{position:fixed;inset:0;z-index:60;background:var(--verde);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:24px 22px calc(24px + env(safe-area-inset-bottom))}
+  .update-bar .txt{flex:1 1 auto;min-width:0;font-size:15px;font-weight:700;line-height:1.3}
+  .update-bar .txt small{display:block;font-size:13px;font-weight:500;color:#d3dff0}
+  .update-bar button{flex:0 0 auto;border:none;border-radius:10px;min-height:44px;padding:0 14px;font-size:15px;font-weight:800;background:#fff;color:#1f3a5f}
+
+  /* ===== Tela inicial ===== */
+  .inicio{position:fixed;inset:0;z-index:60;background:var(--cab);color:#fff;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:calc(24px + env(safe-area-inset-top)) 18px calc(28px + env(safe-area-inset-bottom))}
   .inicio.off{display:none}
-  .inicio h1{font-size:24px;font-weight:800;margin-bottom:6px}
-  .inicio p{font-size:15px;color:#bfe3d7;margin-bottom:26px}
-  .perfil-btn{display:block;width:100%;border:none;border-radius:14px;background:#fff;color:var(--verde);text-align:left;padding:18px 18px;margin-bottom:12px}
+  .ini-ico{width:64px;height:64px;border-radius:18px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+  .inicio h1{font-size:26px;font-weight:800;line-height:1.15;margin-bottom:6px}
+  .inicio p{font-size:17px;color:var(--cab-sub);font-weight:600;margin-bottom:22px}
+  .perfil-btn{display:flex;align-items:center;gap:14px;width:100%;min-height:84px;border:none;border-radius:16px;background:#fff;color:#16202c;text-align:left;padding:14px 14px 14px 14px;margin-bottom:12px}
   .perfil-btn:active{background:#dff1ea}
-  .perfil-btn .pn{display:block;font-size:22px;font-weight:800;letter-spacing:.5px}
-  .perfil-btn .pd{display:block;font-size:13.5px;color:var(--cinza);font-weight:600;margin-top:3px}
-  .update-bar .txt{flex:1 1 auto;font-size:14.5px;font-weight:600}
-  .update-bar button{flex:0 0 auto;border:none;border-radius:9px;padding:11px 16px;font-size:14px;font-weight:800;background:#2e9e5b;color:#fff}
+  .perfil-btn .pnum{width:48px;height:48px;border-radius:50%;background:#0f6e56;color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .perfil-btn .ptx{flex:1 1 auto;min-width:0}
+  .perfil-btn .pn{display:block;font-size:21px;font-weight:800;letter-spacing:.5px;color:#0f6e56}
+  .perfil-btn .pd{display:block;font-size:14.5px;color:#4c5868;font-weight:600;margin-top:2px}
+  .perfil-btn > svg{color:#0f6e56}
+  .ini-nota{font-size:14px;color:var(--cab-sub);line-height:1.4;margin-top:6px;text-align:center}
 </style>
 </head>
 <body>
 <noscript><div style="padding:24px;font-family:sans-serif;background:#fbeaec;color:#b00020;font-size:16px;line-height:1.5"><b>Este app precisa abrir no navegador.</b><br>Abra pelo <b>Chrome</b> (ou pelo ícone instalado na tela inicial).</div></noscript>
 <div class="inicio" id="inicio">
+  <div class="ini-ico" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M8.5 10.5l1.5 1.5 3-3"/><path d="M8.5 16h7"/></svg></div>
   <h1>Contagem de Estoque</h1>
-  <p>Quem vai contar?</p>
-  <button class="perfil-btn" data-perfil="MARCIA"><span class="pn">1 - MARCIA</span><span class="pd">FAK e JL COLOMBO</span></button>
-  <button class="perfil-btn" data-perfil="EMANUEL"><span class="pn">2 - EMANUEL</span><span class="pd">Todos os produtos</span></button>
+  <p>Quem vai contar agora?</p>
+  <button class="perfil-btn" data-perfil="MARCIA"><span class="pnum">1</span><span class="ptx"><span class="pn">MARCIA</span><span class="pd">FAK e JL COLOMBO</span></span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  <button class="perfil-btn" data-perfil="EMANUEL"><span class="pnum">2</span><span class="ptx"><span class="pn">EMANUEL</span><span class="pd">Todos os produtos</span></span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  <div class="ini-nota">A contagem de cada pessoa fica salva neste celular.</div>
 </div>
 <header>
-  <div class="titulo">Contagem de Estoque</div>
-  <div class="sub" id="subTitulo">Digite a quantidade atual de cada produto</div>
+  <div class="cab-topo">
+    <div class="titulo">Contagem de Estoque</div>
+    <div class="sub" id="subTitulo">Digite a quantidade atual de cada produto</div>
+  </div>
   <div class="busca-wrap">
-    <input id="busca" type="text" inputmode="search" autocomplete="off" placeholder="Buscar produto…">
-    <button class="limpar-busca" id="limparBusca" aria-label="Limpar busca">×</button>
+    <svg class="lupa" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg>
+    <input id="busca" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Buscar nome, SKU ou marca">
+    <button class="limpar-busca" id="limparBusca" aria-label="Limpar busca"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="nav-row">
-    <button class="filtro-toggle" id="toggleFaltam" aria-pressed="false">Faltam</button>
+    <button class="filtro-toggle" id="toggleFaltam" aria-pressed="false"><span class="ft-ico"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg></span>Faltam</button>
+    <span class="nav-sep" aria-hidden="true"></span>
     <div class="marcas-bar" id="marcasBar"></div>
   </div>
 </header>
 <main id="lista"></main>
 <footer>
-  <div class="total-linha"><span class="total-rot">Produtos preenchidos</span><span class="total-num" id="totalNum">0</span></div>
+  <div class="total-linha"><span class="total-rot">Produtos preenchidos</span><span class="total-val"><span class="total-num" id="totalNum">0</span><span class="total-de" id="totalDe"></span></span></div>
+  <div class="total-barra" id="totalBarra"></div>
   <div class="acoes">
-    <button class="acao enviar" id="btnEnviar">Enviar</button>
-    <button class="acao copiar" id="btnCopiar">Copiar SKUs</button>
-    <button class="acao menu-btn" id="btnMenu" aria-label="Mais opções">⋯</button>
+    <button class="acao enviar" id="btnEnviar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4 18-7z"/></svg>Enviar</button>
+    <button class="acao copiar" id="btnCopiar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg>Copiar SKUs</button>
+    <button class="acao menu-btn" id="btnMenu" aria-label="Mais opções"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg></button>
   </div>
 </footer>
 <div class="sheet-bg" id="sheetBg"></div>
-<div class="sheet" id="sheet"><div id="sheetMenu">
-  <h2>Opções</h2><p>Gere a planilha de importação (Excel) para subir no UpSeller. Exporte um backup antes de limpar.</p>
-  <button class="acao enviar" id="btnPlanilha">Gerar planilha p/ importar (Excel)</button>
-  <button class="acao copiar" id="btnExportar">Exportar contagem (backup)</button>
-  <button class="acao fechar-sheet" id="btnImportar">Importar contagem (arquivo)</button>
-  <button class="acao reset" id="btnLimparTudo">Limpar tudo (zerar campos)</button>
-  <button class="acao fechar-sheet" id="btnTrocarPerfil">Trocar pessoa</button>
-  <button class="acao fechar-sheet" id="btnFecharMenu">Voltar</button>
+<div class="sheet" id="sheet" role="dialog" aria-label="Mais opções"><div id="sheetMenu">
+  <div class="alca" aria-hidden="true"></div>
+  <h2>Mais opções</h2><p>Para subir no UpSeller, gere a planilha. Antes de limpar, exporte um backup.</p>
+  <button class="opcao" id="btnPlanilha"><span class="op-ico verde"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg></span><span class="op-txt"><b>Gerar planilha para o UpSeller</b><small>Arquivo Excel com SKU e quantidade</small></span></button>
+  <button class="opcao" id="btnExportar"><span class="op-ico azul"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg></span><span class="op-txt"><b>Exportar contagem (backup)</b><small>Salva um arquivo com o que já foi contado</small></span></button>
+  <button class="opcao" id="btnImportar"><span class="op-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M7 9l5-5 5 5"/><path d="M5 20h14"/></svg></span><span class="op-txt"><b>Importar contagem (arquivo)</b><small>Troca a contagem atual pela do arquivo</small></span></button>
+  <button class="opcao" id="btnTrocarPerfil"><span class="op-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span><span class="op-txt"><b>Trocar pessoa</b><small>A contagem de cada pessoa continua salva</small></span></button>
+  <button class="opcao perigo" id="btnLimparTudo"><span class="op-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg></span><span class="op-txt"><b>Limpar tudo (zerar campos)</b><small>Apaga todas as quantidades. Pede confirmação.</small></span></button>
+  <button class="fechar-sheet" id="btnFecharMenu">Voltar</button>
 </div></div>
 <input type="file" id="fileImport" accept="application/json,.json" style="display:none">
 <div class="full" id="resumoFull">
-  <div class="full-head"><button class="full-voltar" id="resumoFechar" aria-label="Voltar">‹</button><div class="full-titulo">Resumo do estoque</div></div>
+  <div class="full-head"><button class="full-voltar" id="resumoFechar" aria-label="Voltar"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div class="full-titulo">Resumo do estoque</div></div>
   <div class="full-body" id="resumoBody"></div>
-  <div class="full-foot"><button class="acao enviar" id="btnShareWpp">Enviar pelo WhatsApp</button><button class="acao copiar" id="btnCopiarResumo">Copiar lista</button></div>
+  <div class="full-foot">
+    <button class="acao enviar" id="btnShareWpp"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.7 7.1L4 20l1-4.1A8 8 0 1 1 20 12z"/></svg>Enviar pelo WhatsApp</button>
+    <button class="acao copiar" id="btnCopiarResumo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg>Copiar lista</button>
+  </div>
 </div>
-<div class="toast" id="toast"></div>
-<div class="update-bar" id="updateBar"><div class="txt">Nova versão disponível</div><button id="btnAtualizar">Atualizar agora</button></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="update-bar" id="updateBar"><div class="txt">Nova versão disponível<small>Sua contagem continua salva.</small></div><button id="btnAtualizar">Atualizar agora</button></div>
 <script src="./planilha-modelo.js"></script>
 <script>
 "use strict";
@@ -352,8 +469,10 @@ function montar(){
   atualizarTotal();
 }
 function pintar(i){const r=refs[i];if(!r)return;const tem=valores[i]!=="";r.item.classList.toggle("tem",tem);r.inp.classList.toggle("vazio",!tem);if(r.card)r.card.classList.toggle("tem",r.mates.some(j=>valores[j]!==""));}
-function atualizarConts(){hdrs.forEach(h=>{if(!h.cont)return;let n=0;for(let i=h.ini;i<h.fim;i++)if(valores[i]!=="")n++;h.cont.textContent=n+"/"+(h.fim-h.ini);});}
-function atualizarTotal(){document.getElementById("totalNum").textContent=valores.filter(v=>v!=="").length;atualizarConts();}
+// (visual) além do "5/30", passa a fração para a barrinha do título (--p) e marca a marca completa
+function atualizarConts(){hdrs.forEach(h=>{if(!h.cont)return;let n=0;for(let i=h.ini;i<h.fim;i++)if(valores[i]!=="")n++;const t=h.fim-h.ini;h.cont.textContent=n+"/"+t;h.el.style.setProperty("--p",t?n/t:0);h.el.classList.toggle("completo",t>0&&n===t);});}
+// (visual) além do total, mostra "de N" e enche a barra do rodapé
+function atualizarTotal(){const n=valores.filter(v=>v!=="").length;document.getElementById("totalNum").textContent=n;document.getElementById("totalDe").textContent=" de "+PRODUTOS.length;document.getElementById("totalBarra").style.setProperty("--p",PRODUTOS.length?n/PRODUTOS.length:0);atualizarConts();}
 // foca o próximo campo VISÍVEL (respeita busca/filtro); no último, fecha o teclado
 function focarProximo(i){for(let j=i+1;j<refs.length;j++){if(refs[j].item.style.display!=="none"){refs[j].inp.focus();return;}}if(refs[i])refs[i].inp.blur();}
 const busca=document.getElementById("busca"),limparBusca=document.getElementById("limparBusca");
