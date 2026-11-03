@@ -92,15 +92,29 @@
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   .update-bar{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));background:var(--azul);color:#fff;border-radius:13px;z-index:50;display:none;align-items:center;gap:10px;padding:12px 12px 12px 16px;box-shadow:0 6px 24px rgba(15,25,40,.35)}
   .update-bar.on{display:flex}
+  .inicio{position:fixed;inset:0;z-index:60;background:var(--verde);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:24px 22px calc(24px + env(safe-area-inset-bottom))}
+  .inicio.off{display:none}
+  .inicio h1{font-size:24px;font-weight:800;margin-bottom:6px}
+  .inicio p{font-size:15px;color:#bfe3d7;margin-bottom:26px}
+  .perfil-btn{display:block;width:100%;border:none;border-radius:14px;background:#fff;color:var(--verde);text-align:left;padding:18px 18px;margin-bottom:12px}
+  .perfil-btn:active{background:#dff1ea}
+  .perfil-btn .pn{display:block;font-size:22px;font-weight:800;letter-spacing:.5px}
+  .perfil-btn .pd{display:block;font-size:13.5px;color:var(--cinza);font-weight:600;margin-top:3px}
   .update-bar .txt{flex:1 1 auto;font-size:14.5px;font-weight:600}
   .update-bar button{flex:0 0 auto;border:none;border-radius:9px;padding:11px 16px;font-size:14px;font-weight:800;background:#2e9e5b;color:#fff}
 </style>
 </head>
 <body>
 <noscript><div style="padding:24px;font-family:sans-serif;background:#fbeaec;color:#b00020;font-size:16px;line-height:1.5"><b>Este app precisa abrir no navegador.</b><br>Abra pelo <b>Chrome</b> (ou pelo ícone instalado na tela inicial).</div></noscript>
+<div class="inicio" id="inicio">
+  <h1>Contagem de Estoque</h1>
+  <p>Quem vai contar?</p>
+  <button class="perfil-btn" data-perfil="MARCIA"><span class="pn">1 - MARCIA</span><span class="pd">FAK e JL COLOMBO</span></button>
+  <button class="perfil-btn" data-perfil="EMANUEL"><span class="pn">2 - EMANUEL</span><span class="pd">Todos os produtos</span></button>
+</div>
 <header>
   <div class="titulo">Contagem de Estoque</div>
-  <div class="sub">Digite a quantidade atual de cada produto</div>
+  <div class="sub" id="subTitulo">Digite a quantidade atual de cada produto</div>
   <div class="busca-wrap">
     <input id="busca" type="text" inputmode="search" autocomplete="off" placeholder="Buscar produto…">
     <button class="limpar-busca" id="limparBusca" aria-label="Limpar busca">×</button>
@@ -126,6 +140,7 @@
   <button class="acao copiar" id="btnExportar">Exportar contagem (backup)</button>
   <button class="acao fechar-sheet" id="btnImportar">Importar contagem (arquivo)</button>
   <button class="acao reset" id="btnLimparTudo">Limpar tudo (zerar campos)</button>
+  <button class="acao fechar-sheet" id="btnTrocarPerfil">Trocar pessoa</button>
   <button class="acao fechar-sheet" id="btnFecharMenu">Voltar</button>
 </div></div>
 <input type="file" id="fileImport" accept="application/json,.json" style="display:none">
@@ -268,15 +283,20 @@ const CATALOGO = [
   ]},
 ];
 
-// achata mantendo a marca de cada item
-const PRODUTOS=[]; const GRUPOS=[];
-CATALOGO.forEach(g=>{ const ini=PRODUTOS.length; g.itens.forEach(it=>PRODUTOS.push({sku:it.sku,nome:it.nome,marca:g.marca})); GRUPOS.push({marca:g.marca,ini,fim:PRODUTOS.length}); });
-const CHAVE="estoque_valores_v1";
-let valores=carregar();
+// Quem está contando: cada pessoa vê só as suas marcas e tem a sua própria contagem salva.
+// (Emanuel continua na chave antiga, então a contagem que já existia é dele.)
+const PERFIS={
+  MARCIA:{nome:"Marcia",marcas:["FAK","JL COLOMBO"],chave:"estoque_valores_marcia"},
+  EMANUEL:{nome:"Emanuel",marcas:null,chave:"estoque_valores_v1"},
+};
+let perfil=null;
+// achata mantendo a marca de cada item (preenchido em iniciar(), conforme a pessoa)
+const PRODUTOS=[]; const GRUPOS=[]; const NOMES_NORM=[];
+let CHAVE="estoque_valores_v1";
+let valores=[];
 function carregar(){try{const raw=localStorage.getItem(CHAVE);if(raw){const o=JSON.parse(raw);if(o&&typeof o==="object")return PRODUTOS.map(p=> (p.sku in o)?String(o[p.sku]):"");}}catch(e){}return PRODUTOS.map(()=> "");}
 function salvar(){try{localStorage.setItem(CHAVE,JSON.stringify(mapaValores()));}catch(e){}}
 function norm(s){return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();}
-const NOMES_NORM=PRODUTOS.map(p=>norm(p.nome+" "+p.sku+" "+p.marca));
 const lista=document.getElementById("lista");const refs=[];const hdrs=[];const CARDS=[];
 // detecta variação do mesmo produto: voltagem (110/220/127) ou lado (ESQUERDO/DIREITO).
 // devolve {base, lbl} — base é o nome sem o token de variação; lbl é o rótulo da linha.
@@ -439,7 +459,7 @@ document.getElementById("btnPlanilha").addEventListener("click",()=>{
   const blob=gerarPlanilhaBlob(itens);
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
-  a.href=url;a.download="importacao-estoque-"+new Date().toISOString().slice(0,10)+".xlsx";
+  a.href=url;a.download="importacao-estoque-"+slugPerfil()+new Date().toISOString().slice(0,10)+".xlsx";
   document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
   fecharSheet();toast(itens.length+" itens na planilha");
@@ -451,7 +471,7 @@ document.getElementById("btnExportar").addEventListener("click",()=>{
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
-  a.href=url;a.download="contagem-estoque-"+new Date().toISOString().slice(0,10)+".json";
+  a.href=url;a.download="contagem-estoque-"+slugPerfil()+new Date().toISOString().slice(0,10)+".json";
   document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
   toast("Backup gerado");
@@ -477,9 +497,21 @@ fileImport.addEventListener("change",()=>{
 function copiar(texto,msg){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(texto).then(()=>toast(msg)).catch(()=>fallback(texto,msg));}else fallback(texto,msg);}
 function fallback(texto,msg){const ta=document.createElement("textarea");ta.value=texto;ta.style.position="fixed";ta.style.opacity="0";document.body.append(ta);ta.select();try{document.execCommand("copy");toast(msg);}catch(e){toast("Não consegui copiar");}ta.remove();}
 let tt=null;function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),2200);}
-montar();
+function slugPerfil(){return perfil?perfil.nome.toLowerCase()+"-":"";}
+function iniciar(id){
+  perfil=PERFIS[id];CHAVE=perfil.chave;
+  CATALOGO.forEach(g=>{ if(perfil.marcas&&!perfil.marcas.includes(g.marca))return; const ini=PRODUTOS.length; g.itens.forEach(it=>PRODUTOS.push({sku:it.sku,nome:it.nome,marca:g.marca})); GRUPOS.push({marca:g.marca,ini,fim:PRODUTOS.length}); });
+  PRODUTOS.forEach(p=>NOMES_NORM.push(norm(p.nome+" "+p.sku+" "+p.marca)));
+  valores=carregar();
+  document.getElementById("subTitulo").textContent=perfil.nome+" · "+(perfil.marcas?perfil.marcas.join(" e "):"todos os produtos");
+  montar();montarChips();
+  document.getElementById("inicio").classList.add("off");
+}
+document.querySelectorAll(".perfil-btn").forEach(b=>b.addEventListener("click",()=>iniciar(b.dataset.perfil)));
+// trocar de pessoa: recarrega e volta à tela inicial (a contagem de cada um fica salva)
+document.getElementById("btnTrocarPerfil").addEventListener("click",()=>location.reload());
 // barra de marcas: rola até o grupo
-(function(){
+function montarChips(){
   const bar=document.getElementById("marcasBar");
   const main=document.getElementById("lista");
   // Calcula o scrollTop necessário para levar o cabeçalho do grupo ao topo.
@@ -534,7 +566,7 @@ montar();
   main.addEventListener("scroll",()=>{ if(ag) return; ag=true;
     requestAnimationFrame(()=>{ ag=false; marcarAtivo(); }); },{passive:true});
   marcarAtivo();
-})();
+}
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   let recarregando=false;
   navigator.serviceWorker.addEventListener("controllerchange",()=>{if(recarregando)return;recarregando=true;window.location.reload();});
