@@ -216,7 +216,7 @@
   <div class="ini-ico" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M8.5 10.5l1.5 1.5 3-3"/><path d="M8.5 16h7"/></svg></div>
   <h1>Contagem de Estoque</h1>
   <p>Quem vai contar agora?</p>
-  <button class="perfil-btn" data-perfil="MARCIA"><span class="pnum">1</span><span class="ptx"><span class="pn">MARCIA</span><span class="pd">FAK e JL COLOMBO</span></span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  <button class="perfil-btn" data-perfil="MARCIA"><span class="pnum">1</span><span class="ptx"><span class="pn">MARCIA</span><span class="pd">FAK, JL COLOMBO e exaustores</span></span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
   <button class="perfil-btn" data-perfil="EMANUEL"><span class="pnum">2</span><span class="ptx"><span class="pn">EMANUEL</span><span class="pd">Todos os produtos</span></span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
   <div class="ini-nota">A contagem de cada pessoa fica salva neste celular.</div>
 </div>
@@ -400,11 +400,13 @@ const CATALOGO = [
   ]},
 ];
 
-// Quem está contando: cada pessoa vê só as suas marcas e tem a sua própria contagem salva.
+// Quem está contando: cada pessoa vê só os seus produtos e tem a sua própria contagem salva.
 // (Emanuel continua na chave antiga, então a contagem que já existia é dele.)
+// ve(marca, item): diz se o produto aparece para a pessoa. null = vê tudo.
 const PERFIS={
-  MARCIA:{nome:"Marcia",marcas:["FAK","JL COLOMBO"],chave:"estoque_valores_marcia"},
-  EMANUEL:{nome:"Emanuel",marcas:null,chave:"estoque_valores_v1"},
+  MARCIA:{nome:"Marcia",desc:"FAK, JL COLOMBO e exaustores",chave:"estoque_valores_marcia",
+    ve:(marca,it)=>marca==="FAK"||marca==="JL COLOMBO"||(marca==="OUTRAS"&&it.nome.startsWith("EXAUSTOR"))},
+  EMANUEL:{nome:"Emanuel",desc:"todos os produtos",chave:"estoque_valores_v1",ve:null},
 };
 let perfil=null;
 // achata mantendo a marca de cada item (preenchido em iniciar(), conforme a pessoa)
@@ -621,10 +623,10 @@ let tt=null;function toast(msg){const t=document.getElementById("toast");t.textC
 function slugPerfil(){return perfil?perfil.nome.toLowerCase()+"-":"";}
 function iniciar(id){
   perfil=PERFIS[id];CHAVE=perfil.chave;
-  CATALOGO.forEach(g=>{ if(perfil.marcas&&!perfil.marcas.includes(g.marca))return; const ini=PRODUTOS.length; g.itens.forEach(it=>PRODUTOS.push({sku:it.sku,nome:it.nome,marca:g.marca})); GRUPOS.push({marca:g.marca,ini,fim:PRODUTOS.length}); });
+  CATALOGO.forEach(g=>{ const itens=perfil.ve?g.itens.filter(it=>perfil.ve(g.marca,it)):g.itens; if(!itens.length)return; const ini=PRODUTOS.length; itens.forEach(it=>PRODUTOS.push({sku:it.sku,nome:it.nome,marca:g.marca})); GRUPOS.push({marca:g.marca,ini,fim:PRODUTOS.length}); });
   PRODUTOS.forEach(p=>NOMES_NORM.push(norm(p.nome+" "+p.sku+" "+p.marca)));
   valores=carregar();
-  document.getElementById("subTitulo").textContent=perfil.nome+" · "+(perfil.marcas?perfil.marcas.join(" e "):"todos os produtos");
+  document.getElementById("subTitulo").textContent=perfil.nome+" · "+perfil.desc;
   montar();montarChips();
   document.getElementById("inicio").classList.add("off");
 }
@@ -685,6 +687,10 @@ function montarChips(){
     let gi=-1;
     for(let i=0;i<posHdrs.length;i++){ if(posHdrs[i]==null) continue; if(gi<0||posHdrs[i]<=pos) gi=i; else break; }
     if(gi<0) gi=0;
+    // no fim da lista a última marca (se for curta) não chega ao topo: destaca ela mesmo assim
+    if(main.scrollTop>0 && main.scrollTop+main.clientHeight>=main.scrollHeight-2){
+      for(let i=posHdrs.length-1;i>=0;i--){ if(posHdrs[i]!=null){ gi=i; break; } }
+    }
     if(gi===ativo) return;
     if(chips[ativo]) chips[ativo].classList.remove("ativo");
     if(chips[gi]) chips[gi].classList.add("ativo");
