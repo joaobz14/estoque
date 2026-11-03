@@ -360,6 +360,7 @@ const busca=document.getElementById("busca"),limparBusca=document.getElementById
 busca.addEventListener("input",filtrar);
 limparBusca.addEventListener("click",()=>{busca.value="";filtrar();busca.focus();});
 let soFaltam=false;
+let invalidarHdrs=()=>{};
 function filtrar(){
   const termos=norm(busca.value.trim()).split(/\s+/).filter(Boolean);
   limparBusca.classList.toggle("on",busca.value.length>0);
@@ -370,6 +371,7 @@ function filtrar(){
   let vz=document.getElementById("vazioBusca");
   if(vis===0){if(!vz){vz=document.createElement("div");vz.id="vazioBusca";vz.className="vazio-busca";lista.append(vz);}vz.textContent=(soFaltam&&!termos.length)?"Tudo contado! 🎉":"Nenhum produto encontrado.";}
   else if(vz){vz.remove();}
+  invalidarHdrs();
 }
 const toggleFaltam=document.getElementById("toggleFaltam");
 toggleFaltam.addEventListener("click",()=>{
@@ -546,12 +548,24 @@ function montarChips(){
     chips.push(b); bar.append(b);
   });
   // destaca o chip do grupo que está no topo da lista enquanto rola.
-  // offsetTop é a posição de layout (imune ao sticky), então é seguro aqui.
-  let ativo=-1;
+  // As posições dos cabeçalhos são medidas com o sticky DESLIGADO e guardadas:
+  // lidas durante a rolagem, no celular elas vêm "grudadas" no topo e o
+  // destaque ficava pulando entre as marcas. Remede ao filtrar ou girar a tela.
+  let ativo=-1,posHdrs=null;
+  function medirHdrs(){
+    lista.classList.add("medindo");
+    const base=main.getBoundingClientRect().top-main.scrollTop;
+    posHdrs=hdrs.map(h=>h.el.style.display==="none"?null:h.el.getBoundingClientRect().top-base);
+    lista.classList.remove("medindo");
+  }
+  invalidarHdrs=()=>{posHdrs=null;marcarAtivo();};
+  window.addEventListener("resize",invalidarHdrs);
   function marcarAtivo(){
+    if(!posHdrs)medirHdrs();
     const pos=main.scrollTop+8;
-    let gi=0;
-    for(let i=0;i<hdrs.length;i++){ if(hdrs[i].el.offsetTop<=pos) gi=i; else break; }
+    let gi=-1;
+    for(let i=0;i<posHdrs.length;i++){ if(posHdrs[i]==null) continue; if(gi<0||posHdrs[i]<=pos) gi=i; else break; }
+    if(gi<0) gi=0;
     if(gi===ativo) return;
     if(chips[ativo]) chips[ativo].classList.remove("ativo");
     if(chips[gi]) chips[gi].classList.add("ativo");
