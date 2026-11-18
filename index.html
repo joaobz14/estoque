@@ -193,33 +193,10 @@
   .update-bar .txt small{display:block;font-size:13px;font-weight:500;color:#d3dff0}
   .update-bar button{flex:0 0 auto;border:none;border-radius:10px;min-height:44px;padding:0 14px;font-size:15px;font-weight:800;background:#fff;color:#1f3a5f}
 
-  /* ===== Tela inicial ===== */
-  .inicio{position:fixed;inset:0;z-index:60;background:var(--cab);color:#fff;display:flex;flex-direction:column;justify-content:flex-end;
-    padding:calc(24px + env(safe-area-inset-top)) 18px calc(28px + env(safe-area-inset-bottom))}
-  .inicio.off{display:none}
-  .ini-ico{width:64px;height:64px;border-radius:18px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;margin-bottom:18px}
-  .inicio h1{font-size:26px;font-weight:800;line-height:1.15;margin-bottom:6px}
-  .inicio p{font-size:17px;color:var(--cab-sub);font-weight:600;margin-bottom:22px}
-  .perfil-btn{display:flex;align-items:center;gap:14px;width:100%;min-height:84px;border:none;border-radius:16px;background:#fff;color:#16202c;text-align:left;padding:14px 14px 14px 14px;margin-bottom:12px}
-  .perfil-btn:active{background:#dff1ea}
-  .perfil-btn .pnum{width:48px;height:48px;border-radius:50%;background:#0f6e56;color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
-  .perfil-btn .ptx{flex:1 1 auto;min-width:0}
-  .perfil-btn .pn{display:block;font-size:21px;font-weight:800;letter-spacing:.5px;color:#0f6e56}
-  .perfil-btn .pd{display:block;font-size:14.5px;color:#4c5868;font-weight:600;margin-top:2px}
-  .perfil-btn > svg{color:#0f6e56}
-  .ini-nota{font-size:14px;color:var(--cab-sub);line-height:1.4;margin-top:6px;text-align:center}
 </style>
 </head>
 <body>
 <noscript><div style="padding:24px;font-family:sans-serif;background:#fbeaec;color:#b00020;font-size:16px;line-height:1.5"><b>Este app precisa abrir no navegador.</b><br>Abra pelo <b>Chrome</b> (ou pelo ícone instalado na tela inicial).</div></noscript>
-<div class="inicio" id="inicio">
-  <div class="ini-ico" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M8.5 10.5l1.5 1.5 3-3"/><path d="M8.5 16h7"/></svg></div>
-  <h1>Contagem de Estoque</h1>
-  <p>Quem vai contar agora?</p>
-  <button class="perfil-btn" data-perfil="MARCIA"><span class="pnum">1</span><span class="ptx"><span class="pn">MARCIA</span><span class="pd">FAK, JL COLOMBO e exaustores</span></span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
-  <button class="perfil-btn" data-perfil="EMANUEL"><span class="pnum">2</span><span class="ptx"><span class="pn">EMANUEL</span><span class="pd">Todos os produtos</span></span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
-  <div class="ini-nota">A contagem de cada pessoa fica salva neste celular.</div>
-</div>
 <header>
   <div class="cab-topo">
     <div class="titulo">Contagem de Estoque</div>
@@ -253,7 +230,6 @@
   <button class="opcao" id="btnPlanilha"><span class="op-ico verde"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg></span><span class="op-txt"><b>Gerar planilha para o UpSeller</b><small>Arquivo Excel com SKU e quantidade</small></span></button>
   <button class="opcao" id="btnExportar"><span class="op-ico azul"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg></span><span class="op-txt"><b>Exportar contagem (backup)</b><small>Salva um arquivo com o que já foi contado</small></span></button>
   <button class="opcao" id="btnImportar"><span class="op-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M7 9l5-5 5 5"/><path d="M5 20h14"/></svg></span><span class="op-txt"><b>Importar contagem (arquivo)</b><small>Troca a contagem atual pela do arquivo</small></span></button>
-  <button class="opcao" id="btnTrocarPerfil"><span class="op-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span><span class="op-txt"><b>Trocar pessoa</b><small>A contagem de cada pessoa continua salva</small></span></button>
   <button class="opcao perigo" id="btnLimparTudo"><span class="op-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg></span><span class="op-txt"><b>Limpar tudo (zerar campos)</b><small>Apaga todas as quantidades. Pede confirmação.</small></span></button>
   <button class="fechar-sheet" id="btnFecharMenu">Voltar</button>
 </div></div>
@@ -397,16 +373,20 @@ const CATALOGO = [
     {sku:"EDC3", nome:"ENGENHO INOX"},
     {sku:"EMC", nome:"ENGENHO CH"},
     {sku:"F1AP", nome:"FOGAREIRO 1 BOCAS"},
+    {sku:"BT4", nome:"KIT 4 BANQUETAS"},
+    {sku:"BT6", nome:"KIT 6 BANQUETAS"},
+    {sku:"BT8", nome:"KIT 8 BANQUETAS"},
+    {sku:"BT10", nome:"KIT 10 BANQUETAS"},
+    {sku:"BT12", nome:"KIT 12 BANQUETAS"},
   ]},
 ];
 
-// Quem está contando: cada pessoa vê só os seus produtos e tem a sua própria contagem salva.
-// (Emanuel continua na chave antiga, então a contagem que já existia é dele.)
+// Quem está contando: hoje só a Marcia. O app abre direto na lista dela.
+// (FAST GOURMET, PRATIC METAL, engenhos e fogareiro ficam no catálogo, mas não aparecem.)
 // ve(marca, item): diz se o produto aparece para a pessoa. null = vê tudo.
 const PERFIS={
-  MARCIA:{nome:"Marcia",desc:"FAK, JL COLOMBO e exaustores",chave:"estoque_valores_marcia",
-    ve:(marca,it)=>marca==="FAK"||marca==="JL COLOMBO"||(marca==="OUTRAS"&&it.nome.startsWith("EXAUSTOR"))},
-  EMANUEL:{nome:"Emanuel",desc:"todos os produtos",chave:"estoque_valores_v1",ve:null},
+  MARCIA:{nome:"Marcia",desc:"FAK, JL COLOMBO, exaustores e banquetas",chave:"estoque_valores_marcia",
+    ve:(marca,it)=>marca==="FAK"||marca==="JL COLOMBO"||(marca==="OUTRAS"&&(it.nome.startsWith("EXAUSTOR")||it.nome.includes("BANQUETA")))},
 };
 let perfil=null;
 // achata mantendo a marca de cada item (preenchido em iniciar(), conforme a pessoa)
@@ -417,10 +397,13 @@ function carregar(){try{const raw=localStorage.getItem(CHAVE);if(raw){const o=JS
 function salvar(){try{localStorage.setItem(CHAVE,JSON.stringify(mapaValores()));}catch(e){}}
 function norm(s){return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();}
 const lista=document.getElementById("lista");const refs=[];const hdrs=[];const CARDS=[];
-// detecta variação do mesmo produto: voltagem (110/220/127) ou lado (ESQUERDO/DIREITO).
+// detecta variação do mesmo produto: voltagem (110/220/127), lado (ESQUERDO/DIREITO)
+// ou quantidade do kit ("KIT 4 BANQUETAS" -> cartão "KIT BANQUETAS", linha "4 UN").
 // devolve {base, lbl} — base é o nome sem o token de variação; lbl é o rótulo da linha.
 function infoVar(nome){
-  let m=nome.match(/\b(110|220|127)\b/);
+  let m=nome.match(/^KIT (\d+) (.+)$/);
+  if(m)return{base:"KIT "+m[2],lbl:m[1]+" UN"};
+  m=nome.match(/\b(110|220|127)\b/);
   if(m)return{base:nome.replace(/\b(110|220|127)\b/,"").replace(/\s+/g," ").trim(),lbl:m[1]};
   m=nome.match(/\b(ESQUERDO|DIREITO)\b/);
   if(m)return{base:nome.replace(/\b(ESQUERDO|DIREITO)\b/,"").replace(/\s+/g," ").trim(),lbl:m[1]};
@@ -628,11 +611,7 @@ function iniciar(id){
   valores=carregar();
   document.getElementById("subTitulo").textContent=perfil.nome+" · "+perfil.desc;
   montar();montarChips();
-  document.getElementById("inicio").classList.add("off");
 }
-document.querySelectorAll(".perfil-btn").forEach(b=>b.addEventListener("click",()=>iniciar(b.dataset.perfil)));
-// trocar de pessoa: recarrega e volta à tela inicial (a contagem de cada um fica salva)
-document.getElementById("btnTrocarPerfil").addEventListener("click",()=>location.reload());
 // barra de marcas: rola até o grupo
 function montarChips(){
   const bar=document.getElementById("marcasBar");
@@ -716,6 +695,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
     reg.update();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")reg.update();});
   }).catch(()=>{});});
 }
+iniciar("MARCIA");
 </script>
 </body>
 </html>
